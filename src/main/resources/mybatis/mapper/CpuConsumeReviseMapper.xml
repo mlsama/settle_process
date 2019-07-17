@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.CpuConsumeReviseMapper">
+
+    <select id="findList" resultType="com.yct.settle.pojo.CpuConsumeRevise">
+        SELECT
+              FNAME, PID, PSN,
+              TIM, LCN, FCN, TF,
+              FEE, BAL, ATT,TT,
+              CRN, XRN, EPID, ETIM,
+              LPID, LTIM, TAC,FLAG
+        FROM T_CPU_CONSUME_REVISE
+    </select>
+
+    <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
+        SELECT count(1) AS notesSum,SUM(TF) AS amountSum FROM T_CPU_CONSUME_REVISE
+    </select>
+
+</mapper>

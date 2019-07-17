@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.CpuConsumeMapper">
+    <select id="findByWhere" resultType="com.yct.settle.pojo.CpuConsume">
+       SELECT
+        PID, PSN, TIM,
+        LCN, FCN, TF, FEE,
+        BAL, ATT, CRN,
+        XRN, EPID, ETIM, LPID,
+        LTIM,TAC
+        FROM
+        (
+            SELECT
+            PID, PSN, TIM,
+            LCN, FCN, TF, FEE,
+            BAL, ATT, CRN,
+            XRN, EPID, ETIM, LPID,
+            LTIM,TAC,rownum r
+            FROM T_CPU_CONSUME t1
+            WHERE NOT EXISTS (
+              SELECT 1
+                 FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN
+            ) AND <![CDATA[rownum <= #{endNum}]]>
+        ) WHERE <![CDATA[r > #{startNum}]]>
+
+    </select>
+
+    <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
+      SELECT count(1) AS notesSum,sum(TF) AS amountSum
+      from T_CPU_CONSUME t1
+        WHERE NOT EXISTS (
+          SELECT 1
+             FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN
+        )
+    </select>
+
+    <select id="findAllNotes" resultType="long">
+        SELECT count(1) from T_CPU_CONSUME t1
+        WHERE NOT EXISTS (
+        SELECT 1
+        FROM T_CPU_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
+        )
+    </select>
+
+</mapper>

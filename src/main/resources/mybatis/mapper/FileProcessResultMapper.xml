@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.FileProcessResultMapper">
+
+    <insert id="insert" parameterType="com.yct.settle.pojo.FileProcessResult">
+        insert into T_FILE_PROCESS_RESULT (SETTLE_DATE, ZIP_FILE_NAME, ZIP_FILE_TYPE,
+        CRAD_TYPE, FILE_NAME, START_TIME,
+        END_TIME, RESULT_CODE, RESULT_MSG,
+        INVEST_NOTES, INVEST_AMOUNT, CONSUME_NOTES,
+        CONSUME_AMOUNT)
+        values (#{settleDate,jdbcType=VARCHAR}, #{zipFileName,jdbcType=VARCHAR}, #{zipFileType,jdbcType=VARCHAR},
+        #{cradType,jdbcType=VARCHAR}, #{fileName,jdbcType=VARCHAR}, SYSDATE,
+        #{endTime,jdbcType=TIMESTAMP}, #{resultCode,jdbcType=VARCHAR}, #{resultMsg,jdbcType=VARCHAR},
+        #{investNotes,jdbcType=DECIMAL}, #{investAmount,jdbcType=DECIMAL}, #{consumeNotes,jdbcType=DECIMAL},
+        #{consumeAmount,jdbcType=DECIMAL})
+    </insert>
+
+    <insert id="insertWithoutNull" parameterType="com.yct.settle.pojo.FileProcessResult">
+        insert into T_FILE_PROCESS_RESULT
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="settleDate != null">
+                SETTLE_DATE,
+            </if>
+            <if test="zipFileName != null">
+                ZIP_FILE_NAME,
+            </if>
+            <if test="zipFileType != null">
+                ZIP_FILE_TYPE,
+            </if>
+            <if test="cardType != null">
+                CARD_TYPE,
+            </if>
+            <if test="fileName != null">
+                FILE_NAME,
+            </if>
+            START_TIME,
+
+            <if test="endTime != null">
+                END_TIME,
+            </if>
+            <if test="resultCode != null">
+                RESULT_CODE,
+            </if>
+            <if test="resultMsg != null">
+                RESULT_MSG,
+            </if>
+            <if test="investNotes != null">
+                INVEST_NOTES,
+            </if>
+            <if test="investAmount != null">
+                INVEST_AMOUNT,
+            </if>
+            <if test="consumeNotes != null">
+                CONSUME_NOTES,
+            </if>
+            <if test="consumeAmount != null">
+                CONSUME_AMOUNT,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="settleDate != null">
+                #{settleDate,jdbcType=VARCHAR},
+            </if>
+            <if test="zipFileName != null">
+                #{zipFileName,jdbcType=VARCHAR},
+            </if>
+            <if test="zipFileType != null">
+                #{zipFileType,jdbcType=VARCHAR},
+            </if>
+            <if test="cardType != null">
+                #{cardType,jdbcType=VARCHAR},
+            </if>
+            <if test="fileName != null">
+                #{fileName,jdbcType=VARCHAR},
+            </if>
+            SYSDATE,
+            <if test="endTime != null">
+                #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="resultCode != null">
+                #{resultCode,jdbcType=VARCHAR},
+            </if>
+            <if test="resultMsg != null">
+                #{resultMsg,jdbcType=VARCHAR},
+            </if>
+            <if test="investNotes != null">
+                #{investNotes,jdbcType=DECIMAL},
+            </if>
+            <if test="investAmount != null">
+                #{investAmount,jdbcType=DECIMAL},
+            </if>
+            <if test="consumeNotes != null">
+                #{consumeNotes,jdbcType=DECIMAL},
+            </if>
+            <if test="consumeAmount != null">
+                #{consumeAmount,jdbcType=DECIMAL},
+            </if>
+        </trim>
+    </insert>
+
+    <update id="update" parameterType="com.yct.settle.pojo.FileProcessResult">
+        UPDATE T_FILE_PROCESS_RESULT SET
+        <trim suffixOverrides=",">
+            <if test="fileName != null">
+                FILE_NAME = #{fileName,jdbcType=VARCHAR},
+            </if>
+            <if test="endTime != null">
+                END_TIME =  #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="resultCode != null">
+                RESULT_CODE = #{resultCode,jdbcType=VARCHAR},
+            </if>
+            <if test="resultMsg != null">
+                RESULT_MSG = #{resultMsg,jdbcType=VARCHAR},
+            </if>
+            <if test="investNotes != null">
+                INVEST_NOTES = #{investNotes,jdbcType=DECIMAL},
+            </if>
+            <if test="investAmount != null">
+                INVEST_AMOUNT = #{investAmount,jdbcType=DECIMAL},
+            </if>
+            <if test="consumeNotes != null">
+                CONSUME_NOTES =  #{consumeNotes,jdbcType=DECIMAL},
+            </if>
+            <if test="consumeAmount != null">
+                CONSUME_AMOUNT= #{consumeAmount,jdbcType=DECIMAL},
+            </if>
+            <if test="reviseNotes != null">
+                REVISE_NOTES =  #{reviseNotes,jdbcType=DECIMAL},
+            </if>
+            <if test="reviseAmount != null">
+                REVISE_AMOUNT = #{reviseAmount,jdbcType=DECIMAL}
+            </if>
+        </trim>
+        where ZIP_FILE_NAME = #{zipFileName,jdbcType=VARCHAR}
+    </update>
+
+    <select id="countInvestDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(INVEST_NOTES) AS notesSum,sum(INVEST_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and ZIP_FILE_TYPE in('01','03')
+    </select>
+
+    <select id="countConsumeDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(CONSUME_NOTES) AS notesSum,sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and ZIP_FILE_TYPE in('02','03')
+    </select>
+
+    <select id="countReviseDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(REVISE_NOTES) AS notesSum,sum(REVISE_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000'
+    </select>
+
+    <select id="countCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(INVEST_NOTES)+sum(CONSUME_NOTES) AS notesSum,sum(INVEST_AMOUNT)+sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and ZIP_FILE_TYPE ='03'
+    </select>
+
+    <select id="countCpuCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(INVEST_NOTES)+sum(CONSUME_NOTES) AS notesSum,sum(INVEST_AMOUNT)+sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and ZIP_FILE_TYPE ='03' and CARD_TYPE='01'
+    </select>
+
+    <select id="countMCardCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(INVEST_NOTES)+sum(CONSUME_NOTES) AS notesSum,sum(INVEST_AMOUNT)+sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and ZIP_FILE_TYPE ='03' and CARD_TYPE='02'
+    </select>
+
+    <select id="countCpuDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT
+        sum(INVEST_NOTES) AS investNotes,
+        sum(INVEST_AMOUNT) AS investAmount,
+        sum(CONSUME_NOTES) AS consumeNotes,
+        sum(CONSUME_AMOUNT) AS consumeAmount,
+        sum(REVISE_NOTES) AS reviseNotes,
+        sum(REVISE_AMOUNT) AS reviseAmount
+        from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and CARD_TYPE = '01'
+    </select>
+
+    <select id="countMCardDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT
+        sum(INVEST_NOTES) AS investNotes,
+        sum(INVEST_AMOUNT) AS investAmount,
+        sum(CONSUME_NOTES) AS consumeNotes,
+        sum(CONSUME_AMOUNT) AS consumeAmount,
+        sum(REVISE_NOTES) AS reviseNotes,
+        sum(REVISE_AMOUNT) AS reviseAmount
+        from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE = '0000' and CARD_TYPE = '02'
+    </select>
+
+    <delete id="delByDate" parameterType="string">
+        DELETE FROM T_FILE_PROCESS_RESULT
+          WHERE SETTLE_DATE = #{date,jdbcType=VARCHAR}
+            and RESULT_CODE = '0000'
+    </delete>
+
+    <delete id="del" parameterType="string">
+        DELETE FROM T_FILE_PROCESS_RESULT
+          WHERE SETTLE_DATE = #{date,jdbcType=VARCHAR}
+          and ZIP_FILE_NAME = #{zipFileName,jdbcType=VARCHAR}
+    </delete>
+
+
+</mapper>

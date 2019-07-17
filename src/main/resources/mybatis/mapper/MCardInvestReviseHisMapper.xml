@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.MCardInvestReviseHisMapper">
+    <select id="findList" resultType="com.yct.settle.pojo.MCardInvestReviseHis">
+      SELECT
+          PSN, LCN, FCN,
+          LPID, LTIM, PID, TIM,
+          TF, BAL, TT, RN,
+          EPID, ETIM,TAC, APP, FLAG
+        FROM T_MCARD_INVEST_REVISE_HIS
+    </select>
+
+    <select id="countData" resultType="com.yct.settle.pojo.CountData">
+        SELECT count(1) AS notesSum,sum(TF) AS amountSum from T_MCARD_INVEST_REVISE_HIS
+    </select>
+
+</mapper>

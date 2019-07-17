@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.CpuTradeReviseMapper">
+
+    <select id="findList" resultType="com.yct.settle.pojo.CpuTradeRevise">
+        SELECT
+          QDATE, LTIME, DT,
+          XT, ISSUEA, USEA, PID,
+          PSN, TIM, LCN, FCN,
+          TF, FEE, BAL, TT,
+          ATT, CRN, XRN, DMON,
+          EPID, ETIM, LPID, LTIM,
+          TAC, BINF, QNAME
+        FROM T_CPU_TRADE_REVISE
+    </select>
+
+    <!--表没有主键时：useGeneratedKeys="false"-->
+    <insert id="batchInsert" parameterType="list" useGeneratedKeys="false">
+        <foreach collection="list" item="item" index="index" separator=";" open="begin" close=";end;">
+            INSERT INTO T_CPU_TRADE_REVISE(QDATE,LTIME,DT,XT,ISSUEA,USEA,PID,PSN,TIM,LCN,FCN,TF,FEE,
+            BAL,TT,ATT,CRN,XRN,DMON,EPID,ETIM,LPID,LTIM,TAC,BINF,QNAME)
+            VALUES
+            (
+            #{item.QDATE,jdbcType=VARCHAR},#{item.LTIME,jdbcType=VARCHAR},#{item.DT,jdbcType=VARCHAR},
+            #{item.XT,jdbcType=VARCHAR},#{item.ISSUEA,jdbcType=VARCHAR},
+            #{item.USEA,jdbcType=VARCHAR}, #{item.PID,jdbcType=VARCHAR},#{item.PSN,jdbcType=VARCHAR},
+            #{item.TIM,jdbcType=VARCHAR},#{item.LCN,jdbcType=VARCHAR},#{item.FCN,jdbcType=VARCHAR},
+            #{item.TF,jdbcType=NUMERIC},#{item.FEE,jdbcType=NUMERIC},#{item.BAL,jdbcType=NUMERIC},
+            #{item.TT,jdbcType=VARCHAR},#{item.ATT,jdbcType=VARCHAR},#{item.CRN,jdbcType=VARCHAR},
+            #{item.XRN,jdbcType=VARCHAR}, #{item.DMON,jdbcType=VARCHAR},#{item.EPID,jdbcType=VARCHAR},
+            #{item.ETIM,jdbcType=VARCHAR}, #{item.LPID,jdbcType=VARCHAR},#{item.LTIM,jdbcType=VARCHAR},
+            #{item.TAC,jdbcType=VARCHAR},#{item.BINF,jdbcType=VARCHAR},#{item.QNAME,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+
+    <select id="findCpuInvestReviseSum" resultType="long">
+        SELECT count(1) FROM T_CPU_TRADE_REVISE
+    </select>
+
+
+</mapper>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.ProcessResultMapper">
+
+    <insert id="insert" parameterType="com.yct.settle.pojo.ProcessResult">
+        insert into T_PROCESS_RESULT
+        (
+        SETTLE_DATE,
+        START_TIME,
+        END_TIME,
+        RESULT_CODE,
+        RESULT_MSG,
+        INVEST_NOTES,
+        INVEST_AMOUNT,
+        CPU_INVEST_NOTES,
+        CPU_INVEST_AMOUNT,
+        MCARD_INVEST_NOTES,
+        MCARD_INVEST_AMOUNT,
+        CONSUME_NOTES,
+        CONSUME_AMOUNT,
+        CPU_CONSUME_NOTES,
+        CPU_CONSUME_AMOUNT,
+        MCARD_CONSUME_NOTES,
+        MCARD_CONSUME_AMOUNT,
+        CUSTOMER_NOTES,
+        CUSTOMER_AMOUNT,
+        CPU_CUSTOMER_NOTES,
+        CPU_CUSTOMER_AMOUNT,
+        MCARD_CUSTOMER_NOTES,
+        MCARD_CUSTOMER_AMOUNT,
+        REVISE_NOTES,
+        REVISE_AMOUNT,
+        CPU_REVISE_NOTES,
+        CPU_REVISE_AMOUNT,
+        MCARD_REVISE_NOTES,
+        MCARD_REVISE_AMOUNT
+        )
+        values
+        (
+        #{settleDate,jdbcType=VARCHAR},
+        #{startTime,jdbcType=TIMESTAMP},
+        #{endTime,jdbcType=TIMESTAMP},
+        #{resultCode,jdbcType=VARCHAR},
+        #{resultMsg,jdbcType=VARCHAR},
+        #{investNotes,jdbcType=DECIMAL},
+        #{investAmount,jdbcType=DECIMAL},
+        #{cpuInvestNotes,jdbcType=DECIMAL},
+        #{cpuInvestAmount,jdbcType=DECIMAL},
+        #{mCardInvestNotes,jdbcType=DECIMAL},
+        #{mCardInvestAmount,jdbcType=DECIMAL},
+        #{consumeNotes,jdbcType=DECIMAL},
+        #{consumeAmount,jdbcType=DECIMAL},
+        #{cpuConsumeNotes,jdbcType=DECIMAL},
+        #{cpuConsumeAmount,jdbcType=DECIMAL},
+        #{mCardConsumeNotes,jdbcType=DECIMAL},
+        #{mCardConsumeAmount,jdbcType=DECIMAL},
+        #{customerNotes,jdbcType=DECIMAL},
+        #{customerAmount,jdbcType=DECIMAL},
+        #{cpuCustomerNotes,jdbcType=DECIMAL},
+        #{cpuCustomerAmount,jdbcType=DECIMAL},
+        #{mCardCustomerNotes,jdbcType=DECIMAL},
+        #{mCardCustomerAmount,jdbcType=DECIMAL},
+        #{reviseNotes,jdbcType=DECIMAL},
+        #{reviseAmount,jdbcType=DECIMAL},
+        #{cpuReviseNotes,jdbcType=DECIMAL},
+        #{cpuReviseAmount,jdbcType=DECIMAL},
+        #{mCardReviseNotes,jdbcType=DECIMAL},
+        #{mCardReviseAmount,jdbcType=DECIMAL}
+        )
+    </insert>
+
+    <delete id="del" parameterType="string">
+        DELETE FROM T_PROCESS_RESULT WHERE SETTLE_DATE = #{date,jdbcType=VARCHAR}
+    </delete>
+
+</mapper>

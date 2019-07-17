@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.MCardConsumeNoBusMapper">
+    <select id="findByWhere" resultType="com.yct.settle.pojo.MCardConsumeNoBus">
+      SELECT
+        PSN, LCN, FCN,
+        LPID, LTIM, PID, TIM,
+        TF, BAL, TT, RN,
+        EPID, ETIM, TAC
+        FROM
+        (
+          SELECT
+            PSN, LCN, FCN,
+            LPID, LTIM, PID, TIM,
+            TF, BAL, TT, RN,
+            EPID, ETIM, TAC,rownum r
+            FROM T_MCARD_CONSUME_NOBUS t1
+            WHERE NOT EXISTS (
+              SELECT 1
+                FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
+            ) AND <![CDATA[rownum <= #{endNum}]]>
+        ) WHERE <![CDATA[r > #{startNum}]]>
+    </select>
+
+    <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
+      SELECT count(1) AS notesSum,sum(TF) AS amountSum
+      from T_MCARD_CONSUME_NOBUS t1
+        WHERE NOT EXISTS (
+          SELECT 1
+            FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
+        )
+    </select>
+
+    <select id="findAllNotes" resultType="long">
+        SELECT count(1) from T_MCARD_CONSUME_NOBUS t1
+        WHERE NOT EXISTS (
+        SELECT 1
+        FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
+        )
+    </select>
+
+</mapper>

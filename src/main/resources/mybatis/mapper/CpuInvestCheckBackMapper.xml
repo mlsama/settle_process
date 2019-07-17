@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.CpuInvestCheckBackMapper">
+
+    <select id="findByWhere" resultType="com.yct.settle.pojo.CpuInvestCheckBack">
+        SELECT
+            PID, PSN, TIM,
+            LCN, FCN, TF, FEE,
+            BAL, TT, ATT, CRN,
+            XRN, LPID, LTIM
+        FROM T_CPU_INVEST_CHECKBACK
+        WHERE FLAG='1'
+    </select>
+
+    <select id="countData" resultType="com.yct.settle.pojo.CountData">
+        SELECT count(1) AS notesSum,sum(TF) AS amountSum from T_CPU_INVEST_CHECKBACK
+        WHERE FLAG='1'
+    </select>
+
+</mapper>

@@ -1,0 +1,28 @@
+server:
+  port: 8888
+spring:
+  datasource:
+    c3p0:
+      driverClass: oracle.jdbc.driver.OracleDriver
+      jdbcUrl: jdbc:oracle:thin:@127.0.0.1:1521:orcl
+      user: SCOTT
+      password: ml
+      odbName: orcl
+      initialPoolSize: 5
+      minPoolSize: 5
+      maxPoolSize: 10
+      acquireIncrement: 5
+mybatis:
+  typeAliasesPackage: com.yct.settle.pojo
+  mapperLocations: classpath:mybatis/mapper/**/*Mapper.xml
+  configLocation: classpath:mybatis/mybatis-config.xml
+
+
+#input数据所在的文件夹
+inputDataFolder: E://testData//input
+#output数据所在的文件夹
+outputDataFolder: E://testData//output
+#处理结果存放的文件夹
+resultFolder: E://testData//result
+#sqlldr控制脚本存放文件夹
+sqlldrFolder: E://testData//sqlldr

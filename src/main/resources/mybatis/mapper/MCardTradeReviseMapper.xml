@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.MCardTradeReviseMapper">
+
+    <select id="findList" resultType="com.yct.settle.pojo.MCardTradeRevise">
+        SELECT
+          QDATE, LTIME, DT,
+          XT, ISSUEA, USEA, DSN,
+          ICN, FCN, LPID, LTIM,
+          PID, TIM, TF, BAL,
+          FEE, TT, RN, DMON,
+          BDCT, MDCT, UDCT, EPID,
+          ETIM, TAC, BINF, QNAME
+        FROM T_MCARD_TRADE_REVISE
+    </select>
+
+    <!--表没有主键时：useGeneratedKeys="false"-->
+    <insert id="batchInsert" parameterType="list" useGeneratedKeys="false">
+        <foreach collection="list" item="item" index="index" separator=";" open="begin" close=";end;">
+            INSERT INTO T_MCARD_TRADE_REVISE(QDATE,LTIME,DT,XT,ISSUEA,USEA,DSN,ICN,FCN,LPID,LTIM,PID,TIM,TF,BAL,FEE,
+            TT,RN,DMON,BDCT,MDCT,UDCT,EPID,ETIM,TAC,BINF,QNAME)
+            VALUES
+            (
+            #{item.QDATE,jdbcType=VARCHAR},#{item.LTIME,jdbcType=VARCHAR},#{item.DT,jdbcType=VARCHAR},
+            #{item.XT,jdbcType=VARCHAR}, #{item.ISSUEA,jdbcType=VARCHAR},
+            #{item.USEA,jdbcType=VARCHAR}, #{item.DSN,jdbcType=VARCHAR},#{item.ICN,jdbcType=VARCHAR},
+            #{item.FCN,jdbcType=VARCHAR},#{item.LPID,jdbcType=VARCHAR},#{item.LTIM,jdbcType=VARCHAR},
+            #{item.PID,jdbcType=VARCHAR},#{item.TIM,jdbcType=VARCHAR}, #{item.TF,jdbcType=NUMERIC},
+            #{item.BAL,jdbcType=NUMERIC},#{item.FEE,jdbcType=NUMERIC},#{item.TT,jdbcType=VARCHAR},
+            #{item.RN,jdbcType=VARCHAR}, #{item.DMON,jdbcType=VARCHAR},#{item.BDCT,jdbcType=VARCHAR},
+            #{item.MDCT,jdbcType=VARCHAR},#{item.UDCT,jdbcType=VARCHAR},#{item.EPID,jdbcType=VARCHAR},
+            #{item.ETIM,jdbcType=VARCHAR},#{item.TAC,jdbcType=VARCHAR},#{item.BINF,jdbcType=VARCHAR},
+            #{item.QNAME,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+
+    <select id="findCpuInvestReviseSum" resultType="long">
+        SELECT COUNT(1) FROM T_MCARD_TRADE_REVISE
+    </select>
+
+</mapper>
