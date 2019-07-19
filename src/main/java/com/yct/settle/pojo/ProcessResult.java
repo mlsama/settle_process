@@ -46,9 +46,18 @@ public class ProcessResult {
     private String resultMsg;
 
     /**
+     * 总笔数
+     */
+    private long totalNotes ;
+    /**
+     * 总金额
+     */
+    private BigDecimal totalAmount ;
+    
+    /**
      * 充值总笔数
      */
-    private int investNotes ;
+    private long investNotes ;
     /**
      * 充值总金额
      */
@@ -56,7 +65,7 @@ public class ProcessResult {
     /**
      * CPU充值笔数
      */
-    private int cpuInvestNotes;
+    private long cpuInvestNotes;
     /**
      * CPU充值金额
      */
@@ -64,7 +73,7 @@ public class ProcessResult {
     /**
      * m1充值笔数
      */
-    private int mCardInvestNotes;
+    private long mCardInvestNotes;
     /**
      * m1充值金额
      */
@@ -72,7 +81,7 @@ public class ProcessResult {
     /**
      * 消费总笔数
      */
-    private int consumeNotes;
+    private long consumeNotes;
     /**
      * 消费总金额
      */
@@ -80,7 +89,7 @@ public class ProcessResult {
     /**
      * CPU消费笔数
      */
-    private int cpuConsumeNotes;
+    private long cpuConsumeNotes;
     /**
      * CPU消费金额
      */
@@ -88,7 +97,7 @@ public class ProcessResult {
     /**
      * m1消费笔数
      */
-    private int mCardConsumeNotes;
+    private long mCardConsumeNotes;
     /**
      * m1消费金额
      */
@@ -97,7 +106,7 @@ public class ProcessResult {
     /**
      * 客服总笔数
      */
-    private int customerNotes;
+    private long customerNotes;
     /**
      * 客服总金额
      */
@@ -105,7 +114,7 @@ public class ProcessResult {
     /**
      * CPU客服笔数
      */
-    private int cpuCustomerNotes;
+    private long cpuCustomerNotes;
     /**
      * CPU客服金额
      */
@@ -113,7 +122,7 @@ public class ProcessResult {
     /**
      * m1客服笔数
      */
-    private int mCardCustomerNotes;
+    private long mCardCustomerNotes;
     /**
      * m1客服金额
      */
@@ -122,7 +131,7 @@ public class ProcessResult {
     /**
      * 修正笔数
      */
-    private int reviseNotes;
+    private long reviseNotes;
     /**
      * 修正金额
      */
@@ -130,7 +139,7 @@ public class ProcessResult {
     /**
      * CPU修正笔数
      */
-    private int cpuReviseNotes;
+    private long cpuReviseNotes;
     /**
      * CPU修正金额
      */
@@ -138,7 +147,7 @@ public class ProcessResult {
     /**
      * m1修正笔数
      */
-    private int mCardReviseNotes;
+    private long mCardReviseNotes;
     /**
      * m1修正金额
      */

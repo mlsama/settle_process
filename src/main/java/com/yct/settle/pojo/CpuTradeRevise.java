@@ -123,7 +123,7 @@ public class CpuTradeRevise {
 
     public String toString() {
         if (LTIM.length() == 8){
-            LTIM += 00;
+            LTIM += "00";
         }
         return QDATE+'\t'+LTIME + '\t'+DT+'\t'+XT + '\t'+"01"+ '\t' + "01" + '\t'+ PID + '\t'+ PSN + '\t'+
                 TIM + '\t'+ LCN + '\t' + FCN + '\t'+ AmountUtil.convertToString(TF, 8) +'\t' + AmountUtil.convertToString(FEE, 8) +'\t' +

@@ -21,8 +21,8 @@ public class FileProcessResult{
     public FileProcessResult(){}
 
     public FileProcessResult(String zipFileName, Date endTime, String resultCode, String resultMsg,
-                             int investNotes, BigDecimal investAmount, int consumeNotes,
-                             BigDecimal consumeAmount, int reviseNotes, BigDecimal reviseAmount) {
+                             long investNotes, BigDecimal investAmount, long consumeNotes,
+                             BigDecimal consumeAmount, long reviseNotes, BigDecimal reviseAmount) {
         this.zipFileName = zipFileName;
         this.endTime = endTime;
         this.resultCode = resultCode;
@@ -69,7 +69,7 @@ public class FileProcessResult{
 
     /**
      * 异常的文件<br>
-     * 数据库字段:FILE_NAME
+     * 数据库字段:ERROR_FILE_NAME
      */
     private String fileName;
 
@@ -101,7 +101,7 @@ public class FileProcessResult{
      * 充值笔数<br>
      * 数据库字段:INVEST_NOTES
      */
-    private int investNotes;
+    private long investNotes;
 
     /**
      * 充值金额<br>
@@ -113,7 +113,7 @@ public class FileProcessResult{
      * 消费笔数<br>
      * 数据库字段:CONSUME_NOTES
      */
-    private int consumeNotes;
+    private long consumeNotes;
 
     /**
      * 消费金额<br>
@@ -124,7 +124,7 @@ public class FileProcessResult{
      * 修正笔数<br>
      * 数据库字段:REVISE_NOTES
      */
-    private int reviseNotes;
+    private long reviseNotes;
 
     /**
      * 修正金额<br>

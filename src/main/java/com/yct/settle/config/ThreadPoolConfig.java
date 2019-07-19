@@ -26,10 +26,11 @@ public class ThreadPoolConfig {
         threadPool.setKeepAliveSeconds(3);
         //队列大小
         threadPool.setQueueCapacity(10);
-        //线程名称前缀
-        threadPool.setThreadNamePrefix("settle-process");
         //线程池工厂
         threadPool.setThreadFactory(new ThreadPoolExecutorFactoryBean());
+        //线程名称前缀
+        //threadPool.setThreadNamePrefix("settle-process");
+        threadPool.setBeanName("settle-process");
         //拒绝策略
         threadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         //初始化线程池,不然报错

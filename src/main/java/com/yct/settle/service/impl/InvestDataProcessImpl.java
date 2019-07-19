@@ -50,6 +50,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
     private MCardInvestCheckBackHisMapper mCardInvestCheckBackHisMapper;
     @Resource
     private ThreadTaskHandle threadTaskHandle;
+    @Resource
+    private FileContentCheckMapper fileContentCheckMapper;
 
 
     /**
@@ -66,8 +68,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
      * @return
      */
     @Override
-    public boolean processInvestFiles(String outputDataFolder, String date, File dmcj, File dmcx, File dmmj,
-                                      File dmmx, String dbUser, String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
+    public boolean processInvestFiles(String inputDataFolder,String outputDataFolder, String date, File dmcj,
+                                      File dmcx, File dmmj, File dmmx, String dbUser,
+                                      String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
         File outputDateDir = new File(outputDataFolder + File.separator + date);
         log.info("开始处理文件夹{}下的充值文件", outputDateDir.getName());
         String fileName = null;
@@ -81,8 +84,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         log.info("有线程发生了异常，处理充值文件的线程无需再执行！");
                         return false;
                     }
+                    //压缩包文件名称
                     fileName = outZipFile.getName();
                     if (fileName.startsWith("CC") || fileName.startsWith("CZ")) {
+                        //对应的input文件夹
+                        File inputDateDir = new File(inputDataFolder + File.separator + date);
                         //落库文件处理表
                         FileProcessResult result = new FileProcessResult();
                         result.setSettleDate(date);
@@ -97,16 +103,26 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         //解压
                         Boolean flag = FileUtil.unZip(outZipFile);
                         if (flag) {
+                            boolean isNewCz = false;
                             //进入解压后的文件夹
                             unZipDir = new File(outputDateDir, outZipFile.getName().substring(0, outZipFile.getName().indexOf(".")));
                             File[] unZipFiles = unZipDir.listFiles();
+
+                            for (File unZipFile : unZipFiles){
+                                if (fileName.startsWith("CZ") && unZipFile.getName().startsWith("JY")){
+                                    //根据JY行长度判断格式
+                                    isNewCz = FileUtil.isNewCz(unZipFile);
+                                    break;
+                                }
+                            }
+
                             for (File unZipFile : unZipFiles) {
-                                if (!(unZipFile.getName().startsWith("MD") || unZipFile.getName().startsWith("RZ"))) {
+                                if (!(unZipFile.getName().startsWith("MD") || unZipFile.getName().startsWith("RZ") || unZipFile.getName().startsWith("QS"))) {
                                     //落库
-                                    boolean insertFlag = batchInsert(unZipFile, fileName, dbUser, dbPassword, odbName, sqlldrDir);
+                                    boolean insertFlag = batchInsert(inputDateDir,unZipFile, fileName, dbUser, dbPassword, odbName, sqlldrDir,isNewCz,resultMap);
                                     if (!insertFlag) { //JY,CZ,XZ,LC任一个文件落库失败，直接返回
                                         //修改
-                                        processResultService.update(new FileProcessResult(fileName, unZipFile.getAbsolutePath(), new Date(), "6555", "落库失败"));
+                                        processResultService.update(new FileProcessResult(fileName, unZipFile.getAbsolutePath(), new Date(), "6555", resultMap.get("msg")));
                                         //删除解压的文件夹
                                         FileUtil.deleteFile(unZipDir);
                                         return false;
@@ -153,10 +169,10 @@ public class InvestDataProcessImpl implements InvestDataProcess {
      * @param zipFileName
      */
     private void countInvestDataToDb(String zipFileName) {
-        int investNotes = 0;
-        BigDecimal investAmount ;
-        int reviseNotes = 0;
-        BigDecimal reviseAmount ;
+        long investNotes = 0L;
+        BigDecimal investAmount = new BigDecimal("0");
+        long reviseNotes = 0L;
+        BigDecimal reviseAmount  = new BigDecimal("0") ;
         if (zipFileName.startsWith("CC")){
             log.info("统计cpu卡充值,修正的笔数和金额");
             CountData investCountData = addContDate(cpuInvestMapper.countData(), cpuInvestCheckBackMapper.countData());
@@ -178,7 +194,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         }
         processResultService.update(
                 new FileProcessResult(zipFileName,new Date(),"0000","处理成功", investNotes,investAmount,
-                                    0,null,reviseNotes,reviseAmount));
+                                    0L,new BigDecimal("0"),reviseNotes,reviseAmount));
     }
 
     private CountData addContDate(CountData v1,CountData v2){
@@ -401,15 +417,31 @@ public class InvestDataProcessImpl implements InvestDataProcess {
 
     /**
      * sqlldr批量导入
+     *
+     * @param inputDateDir
      * @param unZipFile
      * @param dbUser
      * @param dbPassword
      * @param sqlldrDir
+     * @param resultMap
      * @return
      */
-    private boolean batchInsert(File unZipFile, String zipFileName, String dbUser,
-                                                    String dbPassword, String odbName, File sqlldrDir) {
-        log.info("开始处理文件{}",unZipFile.getAbsolutePath());
+    public boolean batchInsert(File inputDateDir, File unZipFile, String zipFileName, String dbUser,
+                               String dbPassword, String odbName, File sqlldrDir, boolean isNewCz, Map<String, String> resultMap) {
+        //input对应文件夹下的压缩文件
+        File inputZipFile = new File(inputDateDir,zipFileName);
+        File targetFile = null;
+        File inputUnZipDir = null;
+        if (inputZipFile.exists()){
+            //解压
+            FileUtil.unZip(inputZipFile);
+            //进入解压目录
+            inputUnZipDir = new File(inputDateDir,zipFileName.substring(0,zipFileName.indexOf(".")));
+            targetFile = new File(inputUnZipDir,unZipFile.getName());
+        }else {
+            resultMap.put("msg",inputZipFile.getAbsolutePath()+"不存在");
+            return false;
+        }
         //表名
         String tableName = null;
         //表字段
@@ -429,6 +461,49 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         "      TAC, APP, FLAG, ERRNO)";
                 //控制文件
                 contlFile = new File(sqlldrDir,"cpuInvest.ctl");
+                boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,targetFile);
+                if (!f1){
+                    resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
+                    FileUtil.deleteFile(inputUnZipDir);
+                    return f1;
+                }
+                //汇总
+                CountData countData = cpuInvestMapper.countAllData();
+                long inputInvestNotes = 0L;
+                BigDecimal inputInvestAmount = new BigDecimal("0");
+                if (countData != null){
+                    inputInvestNotes = countData.getNotesSum();
+                    inputInvestAmount = countData.getAmountSum();
+                }
+                boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
+                if (!f2){
+                    resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
+                    FileUtil.deleteFile(inputUnZipDir);
+                    return f2;
+                }
+                //汇总
+                CountData oCountData = cpuInvestMapper.countAllData();
+                long outputInvestNotes = 0L;
+                BigDecimal outputInvestAmount = new BigDecimal("0");
+                if (countData != null){
+                    outputInvestNotes = oCountData.getNotesSum();
+                    outputInvestAmount = oCountData.getAmountSum();
+                }
+                if (inputInvestNotes != outputInvestNotes || inputInvestAmount.compareTo(outputInvestAmount) != 0){
+                    log.error("input文件{}的笔数或者金额不等于output对应的文件。input笔数：{}，金额:{}。output笔数：{}，金额:{}",
+                            unZipFile.getAbsolutePath(),inputInvestNotes,inputInvestAmount,outputInvestNotes,outputInvestAmount);
+                    //插入文件检查表
+                    fileContentCheckMapper.insert(new FileContentCheck(inputDateDir.getName(),unZipFile.getName(),"01","01",
+                                                    "6555","input文件的笔数或者金额不等于output对应的文件",inputInvestNotes,
+                                                    inputInvestAmount,outputInvestNotes,outputInvestAmount,0L,0L,
+                                                    new BigDecimal("0"),new BigDecimal("0")));
+                    resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
+                    FileUtil.deleteFile(inputUnZipDir);
+                    return false;
+                }
+                FileUtil.deleteFile(inputUnZipDir);
+                return true;
+
             }else if (fileName.startsWith("CZ")){
                 tableName = "T_CPU_INVEST_CHECKBACK";
                 fieldNames = "(PID, PSN, TIM, " +
@@ -460,42 +535,172 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 contlFile = new File(sqlldrDir,"cpuInvestCheckBackHis.ctl");
             }
         }else { //m1卡充值
-            if (fileName.startsWith("JY")){
-                tableName = "T_MCARD_INVEST";
-                fieldNames = "(PSN, LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      EPID, ETIM, AI, VC, " +
-                        "      TAC, APP, FLAG, ERRNO)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"mCardInvest.ctl");
-            }else if (fileName.startsWith("CZ")){
-                tableName = "T_MCARD_INVEST_CHECKBACK";
-                fieldNames = "(PSN, LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      APP, FLAG, ERRNO)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"mCardInvestCheckBack.ctl");
-            }else if (fileName.startsWith("XZ")){
-                tableName = "T_MCARD_INVEST_REVISE_HIS";
-                fieldNames = "(PSN, LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      EPID, ETIM, AI, VC, " +
-                        "      TAC, APP, FLAG, ERRNO)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"mCardInvestReviseHis.ctl");
-            }else if (fileName.startsWith("LC")){
-                tableName = "T_MCARD_INVEST_CHECKBACK_HIS";
-                fieldNames = "(PSN, LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      APP, FLAG, ERRNO)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"mCardInvestCheckBackHis.ctl");
+            if (isNewCz){
+                if (fileName.startsWith("JY")){
+                    tableName = "T_MCARD_INVEST";
+                    fieldNames = "(PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP, FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvest.ctl");
+
+                    boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,targetFile);
+                    if (!f1){
+                        resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
+                        FileUtil.deleteFile(inputUnZipDir);
+                        return f1;
+                    }
+                    //汇总
+                    CountData countData = mCardInvestMapper.countAllData();
+                    long inputInvestNotes = 0L;
+                    BigDecimal inputInvestAmount = new BigDecimal("0");
+                    if (countData != null){
+                        inputInvestNotes = countData.getNotesSum();
+                        inputInvestAmount = countData.getAmountSum();
+                    }
+                    boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
+                    if (!f2){
+                        resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
+                        FileUtil.deleteFile(inputUnZipDir);
+                        return f2;
+                    }
+                    //汇总
+                    CountData oCountData = mCardInvestMapper.countAllData();
+                    long outputInvestNotes = 0L;
+                    BigDecimal outputInvestAmount = new BigDecimal("0");
+                    if (countData != null){
+                        outputInvestNotes = oCountData.getNotesSum();
+                        outputInvestAmount = oCountData.getAmountSum();
+                    }
+                    if (inputInvestNotes != outputInvestNotes || inputInvestAmount.compareTo(outputInvestAmount) != 0){
+                        log.error("input文件[{}]的笔数或者金额不等于output对应的文件。input笔数：{}，金额:{}。output笔数：{}，金额:{}",
+                                unZipFile.getAbsolutePath(),inputInvestNotes,inputInvestAmount,outputInvestNotes,outputInvestAmount);
+                        //插入文件检查表
+                        fileContentCheckMapper.insert(new FileContentCheck(inputDateDir.getName(),unZipFile.getName(),"01","02",
+                                "6555","input文件的笔数或者金额不等于output对应的文件",inputInvestNotes,
+                                inputInvestAmount,outputInvestNotes,outputInvestAmount,0L,0L,
+                                new BigDecimal("0"),new BigDecimal("0")));
+                        resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
+                        FileUtil.deleteFile(inputUnZipDir);
+                        return false;
+                    }
+                    FileUtil.deleteFile(inputUnZipDir);
+                    return true;
+
+                }else if (fileName.startsWith("CZ")){
+                    tableName = "T_MCARD_INVEST_CHECKBACK";
+                    fieldNames = "(PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP, FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvestCheckBack.ctl");
+                }else if (fileName.startsWith("XZ")){
+                    tableName = "T_MCARD_INVEST_REVISE_HIS";
+                    fieldNames = "(PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC,APP,FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvestReviseHis.ctl");
+                }else if (fileName.startsWith("LC")){
+                    tableName = "T_MCARD_INVEST_CHECKBACK_HIS";
+                    fieldNames = "(PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP, FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvestCheckBackHis.ctl");
+                }
+            }else {
+                if (fileName.startsWith("JY")){
+                    tableName = "T_MCARD_INVEST";
+                    fieldNames = "(PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvest.ctl");
+
+                    boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,targetFile);
+                    if (!f1){
+                        resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
+                        FileUtil.deleteFile(inputUnZipDir);
+                        return f1;
+                    }
+                    //汇总
+                    CountData countData = mCardInvestMapper.countAllData();
+                    long inputInvestNotes = 0L;
+                    BigDecimal inputInvestAmount = new BigDecimal("0");
+                    if (countData != null){
+                        inputInvestNotes = countData.getNotesSum();
+                        inputInvestAmount = countData.getAmountSum();
+                    }
+                    boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
+                    if (!f2){
+                        resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
+                        FileUtil.deleteFile(inputUnZipDir);
+                        return f2;
+                    }
+                    //汇总
+                    CountData oCountData = mCardInvestMapper.countAllData();
+                    long outputInvestNotes = 0L;
+                    BigDecimal outputInvestAmount = new BigDecimal("0");
+                    if (countData != null){
+                        outputInvestNotes = oCountData.getNotesSum();
+                        outputInvestAmount = oCountData.getAmountSum();
+                    }
+                    if (inputInvestNotes != outputInvestNotes || inputInvestAmount.compareTo(outputInvestAmount) != 0){
+                        log.error("input文件{}的笔数或者金额不等于output对应的文件。input笔数：{}，金额:{}。output笔数：{}，金额:{}",
+                                unZipFile.getAbsolutePath(),inputInvestNotes,inputInvestAmount,outputInvestNotes,outputInvestAmount);
+                        //插入文件检查表
+                        fileContentCheckMapper.insert(new FileContentCheck(inputDateDir.getName(),unZipFile.getName(),"01","02",
+                                "6555","input文件的笔数或者金额不等于output对应的文件",inputInvestNotes,
+                                inputInvestAmount,outputInvestNotes,outputInvestAmount,0L,0L,
+                                new BigDecimal("0"),new BigDecimal("0")));
+                        resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
+                        FileUtil.deleteFile(inputUnZipDir);
+                        return false;
+                    }
+                    FileUtil.deleteFile(inputUnZipDir);
+                    return true;
+
+                }else if (fileName.startsWith("CZ")){
+                    tableName = "T_MCARD_INVEST_CHECKBACK";
+                    fieldNames = "(PSN constant '00000000', LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP constant 'FF', FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvestCheckBack.ctl");
+                }else if (fileName.startsWith("XZ")){
+                    tableName = "T_MCARD_INVEST_REVISE_HIS";
+                    fieldNames = "(PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvestReviseHis.ctl");
+                }else if (fileName.startsWith("LC")){
+                    tableName = "T_MCARD_INVEST_CHECKBACK_HIS";
+                    fieldNames = "(PSN constant '00000000', LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP constant 'FF', FLAG, ERRNO)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir,"mCardInvestCheckBackHis.ctl");
+                }
             }
         }
-        return SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
+        boolean flag = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
+        if (!flag){
+            resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
+        }
+        return flag;
     }
 }

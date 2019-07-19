@@ -7,6 +7,7 @@ import com.yct.settle.mapper.MCardConsumeReviseMapper;
 import com.yct.settle.pojo.CpuConsume;
 import com.yct.settle.pojo.MCardConsume;
 import com.yct.settle.pojo.MCardConsumeRevise;
+import com.yct.settle.service.impl.InvestDataProcessImpl;
 import com.yct.settle.utils.AmountUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,6 +38,8 @@ public class DataProcessTest {
     private MCardConsumeMapper mCardConsumeMapper;
     @Resource
     private MCardConsumeReviseMapper mCardConsumeReviseMapper;
+    @Resource
+    private InvestDataProcessImpl investDataProcess;
     @Test
     public void ccProcessTest(){
         dataProcessManager.settleDataProcess();
@@ -95,6 +98,14 @@ public class DataProcessTest {
         for (MCardConsumeRevise mCardConsumeRevise : reviseList){
             System.out.println(1);
         }
+    }
+
+    @Test
+    public void mCardInvestCheckTest(){
+        File unzip = new File("E:\\testData\\output\\20121224\\CZ2031000320121223\\XZ2031000320121223.TXT");
+        String name = "CZ2031000320121223";
+        File sqlldrDir = new File("E:\\sqlldrTest");
+        //investDataProcess.batchInsert(inputDateDir, unzip,name,"SCOTT","ml","orcl",sqlldrDir,true, resultMap);
     }
 
 }

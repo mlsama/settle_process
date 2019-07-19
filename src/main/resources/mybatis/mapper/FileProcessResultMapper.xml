@@ -4,7 +4,7 @@
 
     <insert id="insert" parameterType="com.yct.settle.pojo.FileProcessResult">
         insert into T_FILE_PROCESS_RESULT (SETTLE_DATE, ZIP_FILE_NAME, ZIP_FILE_TYPE,
-        CRAD_TYPE, FILE_NAME, START_TIME,
+        CRAD_TYPE, ERROR_FILE_NAME, START_TIME,
         END_TIME, RESULT_CODE, RESULT_MSG,
         INVEST_NOTES, INVEST_AMOUNT, CONSUME_NOTES,
         CONSUME_AMOUNT)
@@ -31,7 +31,7 @@
                 CARD_TYPE,
             </if>
             <if test="fileName != null">
-                FILE_NAME,
+                ERROR_FILE_NAME,
             </if>
             START_TIME,
 
@@ -102,7 +102,7 @@
         UPDATE T_FILE_PROCESS_RESULT SET
         <trim suffixOverrides=",">
             <if test="fileName != null">
-                FILE_NAME = #{fileName,jdbcType=VARCHAR},
+                ERROR_FILE_NAME = #{fileName,jdbcType=VARCHAR},
             </if>
             <if test="endTime != null">
                 END_TIME =  #{endTime,jdbcType=TIMESTAMP},

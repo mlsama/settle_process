@@ -14,7 +14,7 @@ public class CountData {
     /**
      * 总笔数
      */
-    private int notesSum;
+    private long notesSum;
     /**
      * 总金额
      */
@@ -23,7 +23,7 @@ public class CountData {
     /**
      * 充值笔数
      */
-    private int investNotes;
+    private long investNotes;
     /**
      * 充值金额
      */
@@ -31,7 +31,7 @@ public class CountData {
     /**
      * 消费笔数
      */
-    private int consumeNotes;
+    private long consumeNotes;
     /**
      * 消费金额
      */
@@ -39,7 +39,7 @@ public class CountData {
     /**
      * 客服笔数
      */
-    private int customerNotes;
+    private long customerNotes;
     /**
      * 客服金额
      */
@@ -47,7 +47,7 @@ public class CountData {
     /**
      * 修正笔数
      */
-    private int reviseNotes;
+    private long reviseNotes;
     /**
      * 修正金额
      */

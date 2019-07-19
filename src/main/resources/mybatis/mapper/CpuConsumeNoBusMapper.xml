@@ -17,7 +17,7 @@
           LCN, FCN, TF, FEE,
           BAL, ATT, CRN,
           XRN, DMON, EPID, ETIM,
-          LPID, LTIM, TAC
+          LPID, LTIM, TAC,rownum r
           FROM T_CPU_CONSUME_NOBUS t1
           WHERE NOT EXISTS (
             SELECT 1

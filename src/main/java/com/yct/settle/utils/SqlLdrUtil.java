@@ -37,7 +37,7 @@ public class SqlLdrUtil {
             long end = System.currentTimeMillis();
             if (exitValue == 0){
                 flag = true;
-                log.info("使用sqlldr导入文件{}成功，耗时{}s",dataFile.getAbsolutePath(),(end-start)/1000);
+                log.info("导入文件{}成功，耗时{}s",dataFile.getAbsolutePath(),(end-start)/1000);
             }else {
                 log.error("使用sqlldr导入文件{}失败",dataFile.getAbsolutePath());
             }

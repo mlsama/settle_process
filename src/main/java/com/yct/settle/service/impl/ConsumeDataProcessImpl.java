@@ -13,7 +13,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.io.File;
+import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -178,12 +178,12 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
     }
 
     private void countConsumeOrCustomerDataToDb(String inZipFileName,boolean isBusFile) {
-        int investNotes = 0;
-        BigDecimal investAmount = null;
-        int consumeNotes = 0;
-        BigDecimal consumeAmount = null;
-        int reviseNotes = 0;
-        BigDecimal reviseAmount = null;
+        long investNotes = 0;
+        BigDecimal investAmount = new BigDecimal("0");
+        long consumeNotes = 0;
+        BigDecimal consumeAmount = new BigDecimal("0");
+        long reviseNotes = 0;
+        BigDecimal reviseAmount = new BigDecimal("0");
         if (inZipFileName.startsWith("CX")){    //cpu消费文件
             if (isBusFile){ //公交
                 log.info("cpu卡公交消费文件统计数据并落库");
@@ -349,7 +349,14 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             String otable = "T_MCARD_CONSUME_ERROR";
                             String ofields = "(PID, PSN, STATUS)";
                             File ocfile = new File(sqlldrDir,"mCardConsumeError.ctl");
-                            toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            if (unZipDirName.startsWith("XF268")){
+                                //特殊文件，CW与JY一致。转换
+                                File cw = new File(cOutputUnzipDir,"cw.txt");
+                                convertToCw(cOutputUnzipFile,cw);
+                                toMap(info,otable,ofields,ocfile,cw);
+                            }else {
+                                toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            }
                         }
                         if (cOutputUnzipFile.getName().startsWith("XZ")){ //修正
                             String otable = "T_MCARD_CONSUME_REVISE";
@@ -361,7 +368,12 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 }
             }else { //非公交
                 tableName = "T_MCARD_CONSUME_NOBUS";
-                fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                //XF80480001的JY多个8位余额
+                if (unZipDirName.startsWith("XF80480001")){
+                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                }else {
+                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00',TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardConsumeNoBus.ctl");
                 if (oFileExists){
@@ -390,6 +402,27 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         }
         FileUtil.deleteFile(cOutputUnzipDir);
         return true;
+    }
+
+
+    private void convertToCw(File cOutputUnzipFile, File cw) {
+        BufferedReader reader = null;
+        BufferedWriter writer = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(cOutputUnzipFile)));
+            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cw),"UTF-8"));
+            String line = null,resultLine = null;
+            while ((line = reader.readLine()) != null){
+                String[] split = line.split("\t");
+                resultLine = split[0] + "\t" + split[5] + System.getProperty("line.separator");
+                writer.write(resultLine);
+            }
+        }catch (Exception e) {
+            log.error("转换文件{}发生异常:{}",cOutputUnzipFile.getAbsolutePath(),e);
+        } finally {
+            FileUtil.closeReader(reader);
+            FileUtil.closeWriter(writer);
+        }
     }
 
 

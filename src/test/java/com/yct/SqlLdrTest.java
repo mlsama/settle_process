@@ -81,7 +81,7 @@ public class SqlLdrTest {
                 "      TAC, APP, FLAG, ERRNO)";
         //控制文件
         contlFile = new File("E:\\sqlldrTest\\mCardInvest.ctl");
-        File dataFile = new File("E:\\yct\\settleData\\output\\20110309\\CZ2030000120110308\\JY2030000120110308.TXT");
+        File dataFile = new File("E:\\testData\\input\\20121224\\CZ2031000320121223\\JY2031000320121223.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
         if (b){
@@ -99,7 +99,7 @@ public class SqlLdrTest {
                 "      APP, FLAG, ERRNO)";
         //控制文件
         File contlFile = new File("E:\\sqlldrTest\\mCardInvestCheckBack.ctl");
-        File dataFile = new File("E:\\yct\\settleData\\output\\20110309\\CZ2030000120110308\\CZ2030000120110308.TXT");
+        File dataFile = new File("E:\\testData\\input\\20121224\\CZ2031000320121223\\CZ2031000320121223.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
         if (b){

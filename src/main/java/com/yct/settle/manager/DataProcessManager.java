@@ -8,6 +8,7 @@ import com.yct.settle.service.ConsumeDataProcess;
 import com.yct.settle.service.InvestDataProcess;
 import com.yct.settle.service.impl.ProcessResultServiceImpl;
 import com.yct.settle.thread.ThreadTaskHandle;
+import com.yct.settle.utils.AmountUtil;
 import com.yct.settle.utils.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -111,7 +113,7 @@ public class DataProcessManager {
 
                 //异步处理充值文件
                 threadTaskHandle.handle(()->{
-                    investDataProcess.processInvestFiles(outputDataFolder, dateDir.getName(), dmcj, dmcx, dmmj, dmmx,
+                    investDataProcess.processInvestFiles(inputDataFolder,outputDataFolder, dateDir.getName(), dmcj, dmcx, dmmj, dmmx,
                             dbUser, dbPassword, odbName, sqlldrDir,resultMap);
                     try {
                         //到达同步点
@@ -180,16 +182,18 @@ public class DataProcessManager {
                     CountData cpuDate = fileProcessResultMapper.countCpuDate(dateDir.getName());
                     //m1卡汇总数据
                     CountData mCardDate = fileProcessResultMapper.countMCardDate(dateDir.getName());
-                    log.info("{}日结算情况如下：充值总笔数：{}，充值总金额：{}。其中cpu卡充值笔数：{}，充值金额：{}。" +
+                    long totalNotes = investDate.getNotesSum() + consumeDate.getNotesSum();
+                    BigDecimal totalAmount = AmountUtil.add(investDate.getAmountSum(), consumeDate.getAmountSum());
+                    log.info("{}日结算情况如下：总笔数：{}，总金额：{}。充值总笔数：{}，充值总金额：{}。其中cpu卡充值笔数：{}，充值金额：{}。" +
                                     "m1卡充值笔数：{}，充值金额：{}。消费总笔数：{}，消费总金额：{}。其中cpu卡消费笔数：{}，消费金额：{}。" +
                                     "m1卡消费笔数：{}，消费金额：{}。",
-                            dateDir.getName(),investDate.getNotesSum(),investDate.getAmountSum(),cpuDate.getInvestNotes(),
+                            dateDir.getName(),totalNotes,totalAmount,investDate.getNotesSum(),investDate.getAmountSum(),cpuDate.getInvestNotes(),
                             cpuDate.getInvestAmount(),mCardDate.getInvestNotes(),mCardDate.getInvestAmount(),consumeDate.getNotesSum(),
                             consumeDate.getAmountSum(),cpuDate.getConsumeNotes(),cpuDate.getConsumeAmount(),
                             mCardDate.getConsumeNotes(),mCardDate.getConsumeAmount());
                     //写入处理结果表
                     ProcessResult processResult = new ProcessResult(
-                            dateDir.getName(),startTime,new Date(),"0000","处理成功",investDate.getNotesSum(),
+                            dateDir.getName(),startTime,new Date(),"0000","处理成功",totalNotes,totalAmount,investDate.getNotesSum(),
                             investDate.getAmountSum(),cpuDate.getInvestNotes(), cpuDate.getInvestAmount(),mCardDate.getInvestNotes(),
                             mCardDate.getInvestAmount(),consumeDate.getNotesSum(),consumeDate.getAmountSum(),cpuDate.getConsumeNotes(),
                             cpuDate.getConsumeAmount(), mCardDate.getConsumeNotes(), mCardDate.getConsumeAmount(),customerDate.getNotesSum(),

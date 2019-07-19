@@ -20,7 +20,7 @@ public class DmRz {
     /**
      * 文件记录总数
      */
-    private int FRS;
+    private long FRS;
 
     @Override
     public String toString() {

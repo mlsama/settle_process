@@ -363,17 +363,24 @@ public class FileUtil {
                 flag = true;
             }
         }else {
-            BufferedReader reader = null;
-            try {
-                reader = new BufferedReader(new InputStreamReader(new FileInputStream(thisFile)));
-                String line = reader.readLine();
-                if (line.split("\t").length > 17){
-                    flag = true;
+            if (zipFileName.startsWith("XF0000") || zipFileName.startsWith("XF268") ||
+                    zipFileName.startsWith("XF9010") || zipFileName.startsWith("XF9013") ||
+                    zipFileName.startsWith("XF9017") || zipFileName.startsWith("XF9018")){
+                flag =  true;
+
+            }else {
+                BufferedReader reader = null;
+                try {
+                    reader = new BufferedReader(new InputStreamReader(new FileInputStream(thisFile)));
+                    String line = reader.readLine();
+                    if (line.split("\t").length > 17){
+                        flag = true;
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }finally {
+                    closeReader(reader);
                 }
-            }catch (Exception e){
-                e.printStackTrace();
-            }finally {
-                closeReader(reader);
             }
         }
         return flag;
@@ -403,6 +410,26 @@ public class FileUtil {
             }
         }else {
             log.error("数据库没有数据，list集合为空,没有向文件{}写数据",file.getAbsolutePath());
+        }
+    }
+
+    public static boolean isNewCz(File unZipFile) {
+        if (unZipFile.exists()){
+            BufferedReader reader = null;
+            try {
+                reader = new BufferedReader(new InputStreamReader(new FileInputStream(unZipFile)));
+                String line = reader.readLine();
+                if (line.split("\t").length > 18){
+                    return true;
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }finally {
+                closeReader(reader);
+            }
+            return false;
+        }else {
+            throw new RuntimeException(unZipFile+"不存在");
         }
     }
 }

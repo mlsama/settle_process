@@ -15,4 +15,6 @@ public interface MCardInvestMapper {
     CountData countData();
 
     long findAllNotes();
+
+    CountData countAllData();
 }

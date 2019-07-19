@@ -20,4 +20,6 @@ public interface CpuInvestMapper {
     CountData countData();
 
     long findAllNotes();
+
+    CountData countAllData();
 }

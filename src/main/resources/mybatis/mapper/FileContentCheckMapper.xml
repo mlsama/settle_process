@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.FileContentCheckMapper">
+
+    <insert id="insert" parameterType="com.yct.settle.pojo.FileContentCheck">
+        insert into T_FILE_CONTENT_CHECK
+        (
+        SETTLE_DATE,
+        ZIP_FILE_NAME,
+        ZIP_FILE_TYPE,
+        CARD_TYPE,
+        RESULT_CODE,
+        RESULT_MSG,
+        INPUT_INVEST_NOTES,
+        INPUT_INVEST_AMOUNT,
+        OUTPUT_INVEST_NOTES,
+        OUTPUT_INVEST_AMOUNT,
+        INPUT_ERROR_NOTES,
+        OUPUT_ERROR_NOTES,
+        CONSUME_AMOUNT,
+        QS_AMOUNT
+        )
+        values
+        (
+        #{settleDate,jdbcType=VARCHAR},
+        #{zipFileName,jdbcType=VARCHAR},
+        #{zipFileType,jdbcType=VARCHAR},
+        #{cardType,jdbcType=VARCHAR},
+        #{resultCode,jdbcType=VARCHAR},
+        #{resultMsg,jdbcType=VARCHAR},
+        #{inputInvestNotes,jdbcType=DECIMAL},
+        #{inputInvestAmount,jdbcType=DECIMAL},
+        #{outputInvestNotes,jdbcType=DECIMAL},
+        #{outputInvestAmount,jdbcType=DECIMAL},
+        #{inputErrorNotes,jdbcType=DECIMAL},
+        #{outputErrorNotes,jdbcType=DECIMAL},
+        #{consumeAmount,jdbcType=DECIMAL},
+        #{QsAmount,jdbcType=DECIMAL}
+        )
+    </insert>
+
+</mapper>

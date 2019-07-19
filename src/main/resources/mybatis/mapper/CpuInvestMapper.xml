@@ -28,6 +28,10 @@
         WHERE FLAG='1'
     </select>
 
+    <select id="countAllData" resultType="com.yct.settle.pojo.CountData">
+        SELECT count(1) AS notesSum,sum(TF) AS amountSum from T_CPU_INVEST
+    </select>
+
     <select id="findAllNotes" resultType="long">
         SELECT count(1) from T_CPU_INVEST WHERE FLAG='1'
     </select>
