@@ -252,7 +252,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
 
 
     /**
-     *  把CX或者XF压缩文件中的JY文件和对应的output文件夹的相关的文件（CW,XZ）落库
+     *  把CX或者XF压缩文件中的JY文件和对应的output文件夹的相关的文件（CW,XZ,QS）落库
      * @param cOutputDateDir input对应的output的文件夹
      * @param unZipDirName  input压缩文件解压后的文件夹名字
      * @param unZipFile 解压后文件

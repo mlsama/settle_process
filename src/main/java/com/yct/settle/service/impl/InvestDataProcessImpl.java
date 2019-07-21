@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -75,6 +76,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         log.info("开始处理文件夹{}下的充值文件", outputDateDir.getName());
         String fileName = null;
         File unZipDir = null;
+        List<String> fileNameList = new ArrayList<>();
         try {
             if (outputDateDir.exists()) {
                 File[] outZipFiles = outputDateDir.listFiles();
@@ -109,12 +111,17 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             File[] unZipFiles = unZipDir.listFiles();
 
                             for (File unZipFile : unZipFiles){
+                                String filePreFix = unZipFile.getName().substring(0,2 );
+                                fileNameList.add(filePreFix);
                                 if (fileName.startsWith("CZ") && unZipFile.getName().startsWith("JY")){
                                     //根据JY行长度判断格式
                                     isNewCz = FileUtil.isNewCz(unZipFile);
                                     break;
                                 }
                             }
+
+                            //如果没有这些文件，则创建空文件
+                            createFiles(unZipDir,fileNameList);
 
                             for (File unZipFile : unZipFiles) {
                                 if (!(unZipFile.getName().startsWith("MD") || unZipFile.getName().startsWith("RZ") || unZipFile.getName().startsWith("QS"))) {
@@ -161,6 +168,23 @@ public class InvestDataProcessImpl implements InvestDataProcess {
             return false;
         }
         return true;
+    }
+
+    private void createFiles(File unZipDir, List<String> fileNameList) {
+        createFile(unZipDir, fileNameList, "JY");
+        createFile(unZipDir, fileNameList, "CZ");
+        createFile(unZipDir, fileNameList, "XZ");
+        createFile(unZipDir, fileNameList, "LC");
+    }
+    private void createFile(File unZipDir, List<String> fileNameList,String fileName) {
+        if (!fileNameList.contains(fileName)){
+            File file = new File(unZipDir,fileName);
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 
@@ -461,7 +485,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         "      TAC, APP, FLAG, ERRNO)";
                 //控制文件
                 contlFile = new File(sqlldrDir,"cpuInvest.ctl");
-                boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,targetFile);
+                boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,
+                                                                        fieldNames, contlFile,targetFile);
                 if (!f1){
                     resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
                     FileUtil.deleteFile(inputUnZipDir);
@@ -475,7 +500,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     inputInvestNotes = countData.getNotesSum();
                     inputInvestAmount = countData.getAmountSum();
                 }
-                boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
+                boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,
+                                                                            fieldNames,contlFile,unZipFile);
                 if (!f2){
                     resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
                     FileUtil.deleteFile(inputUnZipDir);
