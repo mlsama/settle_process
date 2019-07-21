@@ -272,136 +272,144 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         //控制文件
         File contlFile = null;
         File[] cOutputUnzipFiles = null;
-        boolean oFileExists = false;
         File cOutputUnzipDir = null;
         //解压output对应的压缩文件
         Boolean bool = false;
-        File temFile = null;
-        File[] zipFiles = cOutputDateDir.listFiles();
-        for (File zipFile : zipFiles){
-            if (zipFile.getName().startsWith(unZipDirName)){
-                oFileExists = true;
-                temFile = zipFile;
-            }
-        }
-        if (oFileExists){
+        File oFile = new File(cOutputDateDir,unZipDirName+".ZIP");
+        if (!oFile.exists()) {
             //解压
-            bool = FileUtil.unZip(temFile);
-            if (bool){
+            bool = FileUtil.unZip(oFile);
+            if (bool) {
                 //output对应的文件
-                cOutputUnzipDir = new File(cOutputDateDir,unZipDirName);
-            }else {
-                log.error("{}解压失败或者文件名{}不是以{}开头",temFile.getAbsolutePath(),temFile.getName(),unZipDirName);
+                cOutputUnzipDir = new File(cOutputDateDir, unZipDirName);
+            } else {
+                log.error("{}解压失败或者文件名{}不是以{}开头", oFile.getAbsolutePath(), oFile.getName(), unZipDirName);
                 FileUtil.deleteFile(cOutputUnzipDir);
                 return false;
             }
             cOutputUnzipFiles = cOutputUnzipDir.listFiles();
-        }
+            //没有CW,XZ文件则创建空文件
+            List<String> list = new ArrayList<>();
+            for (File file  : cOutputUnzipFiles){
+                list.add(file.getName().substring(0,2 ));
+            }
+            if (!list.contains("CW")){
+                File cw = new File(cOutputUnzipDir,"CW.txt");
+                try {
+                    cw.createNewFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (!list.contains("XZ")){
+                File xz = new File(cOutputUnzipDir,"XZ.txt");
+                try {
+                    xz.createNewFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
 
-        if (unZipDirName.startsWith("CX")){ //CPU卡
-            if (isBusFile){  //公交
-                tableName = "T_CPU_CONSUME";
-                fieldNames = "(PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON,BDCT,MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC,MEM)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"cpuConsume.ctl");
-                if (oFileExists){
-                    for (File cOutputUnzipFile : cOutputUnzipFiles){
-                        if (cOutputUnzipFile.getName().startsWith("CW")){ //错误
+            if (unZipDirName.startsWith("CX")) { //CPU卡
+                if (isBusFile) {  //公交
+                    tableName = "T_CPU_CONSUME";
+                    fieldNames = "(PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON,BDCT,MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC,MEM)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir, "cpuConsume.ctl");
+                    for (File cOutputUnzipFile : cOutputUnzipFiles) {
+                        if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
                             String otable = "T_CPU_CONSUME_ERROR";
                             String ofields = "(PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, LPID, LTIM, AREA, ACT, SAREA, TAC, STATUS)";
-                            File ocfile = new File(sqlldrDir,"cpuConsumeError.ctl");
-                            toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            File ocfile = new File(sqlldrDir, "cpuConsumeError.ctl");
+                            toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
                         }
-                        if (cOutputUnzipFile.getName().startsWith("XZ")){ //修正
+                        if (cOutputUnzipFile.getName().startsWith("XZ")) { //修正
                             String otable = "T_CPU_CONSUME_REVISE";
                             String ofields = "(FNAME, PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, LPID, LTIM, AREA, ACT, SAREA, TAC, FLAG, CODE)";
-                            File ocfile = new File(sqlldrDir,"cpuConsumeRevise.ctl");
-                            toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            File ocfile = new File(sqlldrDir, "cpuConsumeRevise.ctl");
+                            toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
                         }
                     }
-                }
-            }else { //非公交
-                tableName = "T_CPU_CONSUME_NOBUS";
-                fieldNames = "(PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, EPID, ETIM, LPID, LTIM, TAC)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"cpuConsumeNoBus.ctl");
-                if (oFileExists){
-                    for (File cOutputUnzipFile : cOutputUnzipFiles){
-                        if (cOutputUnzipFile.getName().startsWith("CW")){ //错误
+                } else { //非公交
+                    tableName = "T_CPU_CONSUME_NOBUS";
+                    fieldNames = "(PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, EPID, ETIM, LPID, LTIM, TAC)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir, "cpuConsumeNoBus.ctl");
+                    for (File cOutputUnzipFile : cOutputUnzipFiles) {
+                        if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
                             String otable = "T_CPU_CONSUME_ERROR_NOBUS";
                             String ofields = "(PID, PSN, TAC, STATUS)";
-                            File ocfile = new File(sqlldrDir,"cpuConsumeErrorNoBus.ctl");
-                            toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            File ocfile = new File(sqlldrDir, "cpuConsumeErrorNoBus.ctl");
+                            toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
                             break;
                         }
                     }
                 }
-            }
-        }else if (unZipDirName.startsWith("XF")){ //M1卡
-            if (isBusFile){  //公交
-                tableName = "T_MCARD_CONSUME";
-                fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, RN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, AI, VC, TAC)";
-                //控制文件
-                contlFile = new File(sqlldrDir,"mCardConsume.ctl");
-                if (oFileExists){
-                    for (File cOutputUnzipFile : cOutputUnzipFiles){
-                        if (cOutputUnzipFile.getName().startsWith("CW")){ //错误
+            } else if (unZipDirName.startsWith("XF")) { //M1卡
+                if (isBusFile) {  //公交
+                    tableName = "T_MCARD_CONSUME";
+                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, RN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, AI, VC, TAC)";
+                    //控制文件
+                    contlFile = new File(sqlldrDir, "mCardConsume.ctl");
+                    for (File cOutputUnzipFile : cOutputUnzipFiles) {
+                        if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
                             String otable = "T_MCARD_CONSUME_ERROR";
                             String ofields = "(PID, PSN, STATUS)";
-                            File ocfile = new File(sqlldrDir,"mCardConsumeError.ctl");
-                            if (unZipDirName.startsWith("XF268")){
+                            File ocfile = new File(sqlldrDir, "mCardConsumeError.ctl");
+                            if (unZipDirName.startsWith("XF268")) {
                                 //特殊文件，CW与JY一致。转换
-                                File cw = new File(cOutputUnzipDir,"cw.txt");
-                                convertToCw(cOutputUnzipFile,cw);
-                                toMap(info,otable,ofields,ocfile,cw);
-                            }else {
-                                toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                                File cw = new File(cOutputUnzipDir, "cw.txt");
+                                convertToCw(cOutputUnzipFile, cw);
+                                toMap(info, otable, ofields, ocfile, cw);
+                            } else {
+                                toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
                             }
                         }
-                        if (cOutputUnzipFile.getName().startsWith("XZ")){ //修正
+                        if (cOutputUnzipFile.getName().startsWith("XZ")) { //修正
                             String otable = "T_MCARD_CONSUME_REVISE";
                             String ofields = "(FNAME, PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, RN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, AI, VC, TAC, FLAG, CODE)";
-                            File ocfile = new File(sqlldrDir,"mCardConsumeRevise.ctl");
-                            toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            File ocfile = new File(sqlldrDir, "mCardConsumeRevise.ctl");
+                            toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
                         }
                     }
-                }
-            }else { //非公交
-                tableName = "T_MCARD_CONSUME_NOBUS";
-                //XF80480001的JY多个8位余额
-                if (unZipDirName.startsWith("XF80480001")){
-                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
-                }else {
-                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00',TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
-                }
-                //控制文件
-                contlFile = new File(sqlldrDir,"mCardConsumeNoBus.ctl");
-                if (oFileExists){
-                    for (File cOutputUnzipFile : cOutputUnzipFiles){
-                        if (cOutputUnzipFile.getName().startsWith("CW")){ //错误
+                } else { //非公交
+                    tableName = "T_MCARD_CONSUME_NOBUS";
+                    //XF80480001的JY多个8位余额
+                    if (unZipDirName.startsWith("XF80480001")) {
+                        fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                    } else {
+                        fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00',TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                    }
+                    //控制文件
+                    contlFile = new File(sqlldrDir, "mCardConsumeNoBus.ctl");
+                    for (File cOutputUnzipFile : cOutputUnzipFiles) {
+                        if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
                             String otable = "T_MCARD_CONSUME_ERROR_NOBUS";
                             String ofields = "(PSN, PID, STATUS)";
-                            File ocfile = new File(sqlldrDir,"mCardConsumeErrorNoBus.ctl");
-                            toMap(info,otable,ofields,ocfile,cOutputUnzipFile);
+                            File ocfile = new File(sqlldrDir, "mCardConsumeErrorNoBus.ctl");
+                            toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
                             break;
                         }
                     }
                 }
             }
-        }
-        toMap(info,tableName,fieldNames,contlFile,unZipFile);
-        //落库
-        for (Map<String,Object> map : info){
-            boolean f = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,(String)map.get("tableName"),(String)map.get("fieldNames"),
-                    (File) map.get("contlFile"),(File) map.get("dataFile"));
-            if (!f){
-                log.error("落库失败，文件是{}",((File) map.get("dataFile")).getAbsolutePath());
-                FileUtil.deleteFile(cOutputUnzipDir);
-                return false;
+            toMap(info, tableName, fieldNames, contlFile, unZipFile);
+            //落库
+            for (Map<String, Object> map : info) {
+                boolean f = SqlLdrUtil.insertBySqlLdr(dbUser, dbPassword, odbName, (String) map.get("tableName"), (String) map.get("fieldNames"),
+                        (File) map.get("contlFile"), (File) map.get("dataFile"));
+                if (!f) {
+                    log.error("落库失败，文件是{}", ((File) map.get("dataFile")).getAbsolutePath());
+                    FileUtil.deleteFile(cOutputUnzipDir);
+                    return false;
+                }
             }
+            FileUtil.deleteFile(cOutputUnzipDir);
+            return true;
+        }else {
+            log.error("output文件夹对应的文件{}不存在", oFile.getAbsolutePath());
+            return false;
         }
-        FileUtil.deleteFile(cOutputUnzipDir);
-        return true;
     }
 
 
