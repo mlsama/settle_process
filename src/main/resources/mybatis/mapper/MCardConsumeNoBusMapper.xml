@@ -41,4 +41,16 @@
         )
     </select>
 
+    <select id="findCwNotes" resultType="long">
+        SELECT count(1) from T_MCARD_CONSUME_NOBUS t1
+        WHERE EXISTS (
+        SELECT 1
+        FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
+        )
+    </select>
+
+    <select id="countCwNotes" resultType="long">
+        SELECT count(1) FROM T_MCARD_CONSUME_ERROR_NOBUS
+    </select>
+
 </mapper>

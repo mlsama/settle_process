@@ -20,4 +20,10 @@ public interface CpuConsumeMapper {
     CountData countAmountAndNum();
 
     long findAllNotes();
+    //统计与错误表pid,psn一致的记录数
+    long findCwNotes();
+    //统计错误表记录数
+    long countCwNotes();
+
+
 }

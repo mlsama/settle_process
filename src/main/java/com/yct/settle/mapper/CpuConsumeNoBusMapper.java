@@ -20,4 +20,8 @@ public interface CpuConsumeNoBusMapper {
     CountData countAmountAndNum();
 
     long findAllNotes();
+
+    long findCwNotes();
+
+    long countCwNotes();
 }

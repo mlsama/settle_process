@@ -20,4 +20,8 @@ public interface MCardConsumeMapper {
     CountData countAmountAndNum();
 
     Long findAllNotes();
+
+    long findCwNotes();
+
+    long countCwNotes();
 }

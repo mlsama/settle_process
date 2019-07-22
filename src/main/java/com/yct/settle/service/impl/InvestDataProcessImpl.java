@@ -89,8 +89,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     //压缩包文件名称
                     fileName = outZipFile.getName();
                     if (fileName.startsWith("CC") || fileName.startsWith("CZ")) {
-                        //对应的input文件夹
-                        File inputDateDir = new File(inputDataFolder + File.separator + date);
                         //落库文件处理表
                         FileProcessResult result = new FileProcessResult();
                         result.setSettleDate(date);
@@ -108,25 +106,47 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             boolean isNewCz = false;
                             //进入解压后的文件夹
                             unZipDir = new File(outputDateDir, outZipFile.getName().substring(0, outZipFile.getName().indexOf(".")));
-                            File[] unZipFiles = unZipDir.listFiles();
 
+                            //找到对应input的JY
+                            File inputDateDir = new File(inputDataFolder + File.separator + date);
+                            File targetFile = null;
+                            File inputUnZipDir = null;
+                            for (File file : inputDateDir.listFiles()){
+                                if (file.getName().startsWith(unZipDir.getName())){
+                                    //解压
+                                    FileUtil.unZip(file);
+                                    //进入解压目录
+                                    inputUnZipDir = new File(inputDateDir,unZipDir.getName());
+                                    for (File inputFile : inputUnZipDir.listFiles()){
+                                        if (inputFile.getName().startsWith("JY")){
+                                            targetFile = inputFile;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            if (targetFile == null){
+                                log.error("{}下没有以{}开头的文件",inputDateDir.getAbsolutePath(),unZipDir.getName());
+                                FileUtil.deleteFile(inputUnZipDir);
+                                return false;
+                            }
+
+                            File[] unZipFiles = unZipDir.listFiles();
                             for (File unZipFile : unZipFiles){
                                 String filePreFix = unZipFile.getName().substring(0,2 );
                                 fileNameList.add(filePreFix);
                                 if (fileName.startsWith("CZ") && unZipFile.getName().startsWith("JY")){
                                     //根据JY行长度判断格式
                                     isNewCz = FileUtil.isNewCz(unZipFile);
-                                    break;
                                 }
                             }
-
                             //如果没有这些文件，则创建空文件
                             createFiles(unZipDir,fileNameList);
-
                             for (File unZipFile : unZipFiles) {
                                 if (!(unZipFile.getName().startsWith("MD") || unZipFile.getName().startsWith("RZ") || unZipFile.getName().startsWith("QS"))) {
                                     //落库
-                                    boolean insertFlag = batchInsert(inputDateDir,unZipFile, fileName, dbUser, dbPassword, odbName, sqlldrDir,isNewCz,resultMap);
+                                    boolean insertFlag = batchInsert(date,unZipFile, unZipDir.getName(), dbUser, dbPassword, odbName, sqlldrDir,isNewCz,resultMap,targetFile);
                                     if (!insertFlag) { //JY,CZ,XZ,LC任一个文件落库失败，直接返回
                                         //修改
                                         processResultService.update(new FileProcessResult(fileName, unZipFile.getAbsolutePath(), new Date(), "6555", resultMap.get("msg")));
@@ -141,6 +161,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             //把这个充值文件的统计数据存到数据库表
                             countInvestDataToDb(fileName);
                             //删除解压的文件夹
+                            FileUtil.deleteFile(inputUnZipDir);
                             FileUtil.deleteFile(unZipDir);
                             resultMap.put("investResultCode", "0000");
                         } else {
@@ -442,7 +463,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
     /**
      * sqlldr批量导入
      *
-     * @param inputDateDir
+     *
+     * @param date
      * @param unZipFile
      * @param dbUser
      * @param dbPassword
@@ -450,22 +472,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
      * @param resultMap
      * @return
      */
-    public boolean batchInsert(File inputDateDir, File unZipFile, String zipFileName, String dbUser,
-                               String dbPassword, String odbName, File sqlldrDir, boolean isNewCz, Map<String, String> resultMap) {
-        //input对应文件夹下的压缩文件
-        File inputZipFile = new File(inputDateDir,zipFileName);
-        File targetFile = null;
-        File inputUnZipDir = null;
-        if (inputZipFile.exists()){
-            //解压
-            FileUtil.unZip(inputZipFile);
-            //进入解压目录
-            inputUnZipDir = new File(inputDateDir,zipFileName.substring(0,zipFileName.indexOf(".")));
-            targetFile = new File(inputUnZipDir,unZipFile.getName());
-        }else {
-            resultMap.put("msg",inputZipFile.getAbsolutePath()+"不存在");
-            return false;
-        }
+    public boolean batchInsert(String date, File unZipFile, String unZipDirName, String dbUser, String dbPassword, String odbName,
+                               File sqlldrDir, boolean isNewCz, Map<String, String> resultMap, File targetFile) {
         //表名
         String tableName = null;
         //表字段
@@ -473,7 +481,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         //控制文件
         File contlFile = null;
         String fileName = unZipFile.getName();
-        if (zipFileName.startsWith("CC")) {  //cpu卡充值
+        if (unZipDirName.startsWith("CC")) {  //cpu卡充值
             if (fileName.startsWith("JY")){
                 tableName = "T_CPU_INVEST";
                 fieldNames = "(PID, PSN, TIM, " +
@@ -489,7 +497,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                                                         fieldNames, contlFile,targetFile);
                 if (!f1){
                     resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
-                    FileUtil.deleteFile(inputUnZipDir);
                     return f1;
                 }
                 //汇总
@@ -504,7 +511,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                                                             fieldNames,contlFile,unZipFile);
                 if (!f2){
                     resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
-                    FileUtil.deleteFile(inputUnZipDir);
                     return f2;
                 }
                 //汇总
@@ -519,15 +525,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     log.error("input文件{}的笔数或者金额不等于output对应的文件。input笔数：{}，金额:{}。output笔数：{}，金额:{}",
                             unZipFile.getAbsolutePath(),inputInvestNotes,inputInvestAmount,outputInvestNotes,outputInvestAmount);
                     //插入文件检查表
-                    fileContentCheckMapper.insert(new FileContentCheck(inputDateDir.getName(),unZipFile.getName(),"01","01",
+                    fileContentCheckMapper.insert(new FileContentCheck(date,unZipFile.getAbsolutePath(),"01","01",
                                                     "6555","input文件的笔数或者金额不等于output对应的文件",inputInvestNotes,
                                                     inputInvestAmount,outputInvestNotes,outputInvestAmount,0L,0L,
                                                     new BigDecimal("0"),new BigDecimal("0")));
                     resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
-                    FileUtil.deleteFile(inputUnZipDir);
                     return false;
                 }
-                FileUtil.deleteFile(inputUnZipDir);
                 return true;
 
             }else if (fileName.startsWith("CZ")){
@@ -575,7 +579,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,targetFile);
                     if (!f1){
                         resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
-                        FileUtil.deleteFile(inputUnZipDir);
                         return f1;
                     }
                     //汇总
@@ -589,7 +592,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
                     if (!f2){
                         resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
-                        FileUtil.deleteFile(inputUnZipDir);
                         return f2;
                     }
                     //汇总
@@ -604,15 +606,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         log.error("input文件[{}]的笔数或者金额不等于output对应的文件。input笔数：{}，金额:{}。output笔数：{}，金额:{}",
                                 unZipFile.getAbsolutePath(),inputInvestNotes,inputInvestAmount,outputInvestNotes,outputInvestAmount);
                         //插入文件检查表
-                        fileContentCheckMapper.insert(new FileContentCheck(inputDateDir.getName(),unZipFile.getName(),"01","02",
+                        fileContentCheckMapper.insert(new FileContentCheck(date,unZipFile.getAbsolutePath(),"01","02",
                                 "6555","input文件的笔数或者金额不等于output对应的文件",inputInvestNotes,
                                 inputInvestAmount,outputInvestNotes,outputInvestAmount,0L,0L,
                                 new BigDecimal("0"),new BigDecimal("0")));
                         resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
-                        FileUtil.deleteFile(inputUnZipDir);
                         return false;
                     }
-                    FileUtil.deleteFile(inputUnZipDir);
                     return true;
 
                 }else if (fileName.startsWith("CZ")){
@@ -655,7 +655,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     boolean f1 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,targetFile);
                     if (!f1){
                         resultMap.put("msg",targetFile.getAbsolutePath()+"落库失败");
-                        FileUtil.deleteFile(inputUnZipDir);
                         return f1;
                     }
                     //汇总
@@ -669,7 +668,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     boolean f2 = SqlLdrUtil.insertBySqlLdr(dbUser,dbPassword,odbName,tableName,fieldNames,contlFile,unZipFile);
                     if (!f2){
                         resultMap.put("msg",unZipFile.getAbsolutePath()+"落库失败");
-                        FileUtil.deleteFile(inputUnZipDir);
                         return f2;
                     }
                     //汇总
@@ -684,15 +682,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         log.error("input文件{}的笔数或者金额不等于output对应的文件。input笔数：{}，金额:{}。output笔数：{}，金额:{}",
                                 unZipFile.getAbsolutePath(),inputInvestNotes,inputInvestAmount,outputInvestNotes,outputInvestAmount);
                         //插入文件检查表
-                        fileContentCheckMapper.insert(new FileContentCheck(inputDateDir.getName(),unZipFile.getName(),"01","02",
+                        fileContentCheckMapper.insert(new FileContentCheck(date,unZipFile.getAbsolutePath(),"01","02",
                                 "6555","input文件的笔数或者金额不等于output对应的文件",inputInvestNotes,
                                 inputInvestAmount,outputInvestNotes,outputInvestAmount,0L,0L,
                                 new BigDecimal("0"),new BigDecimal("0")));
                         resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
-                        FileUtil.deleteFile(inputUnZipDir);
                         return false;
                     }
-                    FileUtil.deleteFile(inputUnZipDir);
                     return true;
 
                 }else if (fileName.startsWith("CZ")){

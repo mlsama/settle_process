@@ -27,8 +27,14 @@ public class FileUtilTest {
 
     @Test
     public void lineTest(){
-        File file = new File("E:\\yct\\settleData\\output\\20110309");
-        System.out.println(file.getName());
+        File dir = new File("E:\\testData\\input\\20110309\\CX9004000120110308");
+        for (File file : dir.listFiles()){
+            if (file.getName().startsWith("JY")){
+                if (file.length() > 0){
+
+                }
+            }
+        }
     }
 
 }
