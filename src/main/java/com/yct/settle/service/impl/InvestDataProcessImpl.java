@@ -127,9 +127,10 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                 }
                             }
                             if (targetFile == null){
-                                log.error("{}下没有以{}开头的文件",inputDateDir.getAbsolutePath(),unZipDir.getName());
+                                log.error("{}下没有以{}开头的文件或者这个文件里没有JY文件",inputDateDir.getAbsolutePath(),unZipDir.getName());
+                                FileUtil.deleteFile(unZipDir);
                                 FileUtil.deleteFile(inputUnZipDir);
-                                return false;
+                                continue;
                             }
 
                             File[] unZipFiles = unZipDir.listFiles();
@@ -483,6 +484,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         String fileName = unZipFile.getName();
         if (unZipDirName.startsWith("CC")) {  //cpu卡充值
             if (fileName.startsWith("JY")){
+                log.info("开始对cpu卡充值文化进行内容校验");
                 tableName = "T_CPU_INVEST";
                 fieldNames = "(PID, PSN, TIM, " +
                         "      LCN, FCN, TF, FEE, " +
@@ -531,8 +533,10 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                                     new BigDecimal("0"),new BigDecimal("0")));
                     resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
                     return false;
+                }else {
+                    log.info("{}校验成功。",unZipDirName);
+                    return true;
                 }
-                return true;
 
             }else if (fileName.startsWith("CZ")){
                 tableName = "T_CPU_INVEST_CHECKBACK";
@@ -643,6 +647,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 }
             }else {
                 if (fileName.startsWith("JY")){
+                    log.info("开始对m1卡充值文化进行内容校验");
                     tableName = "T_MCARD_INVEST";
                     fieldNames = "(PSN, LCN, FCN, " +
                             "      LPID, LTIM, PID, TIM, " +
@@ -688,9 +693,10 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                 new BigDecimal("0"),new BigDecimal("0")));
                         resultMap.put("msg","input文件的笔数或者金额不等于output对应的文件");
                         return false;
+                    }else {
+                        log.info("{}校验成功。",unZipDirName);
+                        return true;
                     }
-                    return true;
-
                 }else if (fileName.startsWith("CZ")){
                     tableName = "T_MCARD_INVEST_CHECKBACK";
                     fieldNames = "(PSN constant '00000000', LCN, FCN, " +

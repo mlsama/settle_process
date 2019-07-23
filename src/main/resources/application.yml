@@ -23,6 +23,6 @@ inputDataFolder: E://testData//input
 #output数据所在的文件夹
 outputDataFolder: E://testData//output
 #处理结果存放的文件夹
-resultFolder: E://testData//result
+resultFolder: E://data//dm
 #sqlldr控制脚本存放文件夹
 sqlldrFolder: E://testData//sqlldr

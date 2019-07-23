@@ -13,4 +13,6 @@ import java.math.BigDecimal;
 public interface SettleAuditMapper {
 
     BigDecimal countTotalAmount();
+
+    BigDecimal countTotalAmountZ();
 }

@@ -216,8 +216,9 @@ public class SqlLdrTest {
 
     @Test
     public void mCardConsumeErrorTest(){
+        String date = "20190723";
         String tableName = "T_MCARD_CONSUME_ERROR";
-        String fieldNames = "( PSN,PID, STATUS)";
+        String fieldNames = "(PSN constant "+date+",PID, STATUS)";
         //控制文件
         File contlFile = new File("E:\\insertTest.ctl");
         File dataFile = new File("E:\\insertTest.txt");

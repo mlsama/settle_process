@@ -22,7 +22,7 @@ public class FileUtilTest {
     }
     @Test
     public void unzipTest(){
-       FileUtil.unZip(new File("E:\\sqlldrTest.zip"));
+       FileUtil.unZip(new File("E:\\testData\\input\\20121030\\XF200430120101209old.zip"));
     }
 
     @Test
