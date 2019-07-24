@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public interface InvestDataProcess {
 
-    boolean processInvestFiles(String inputDataFolder,String outputDataFolder, String date, File dmcj,
+    void processInvestFiles(String inputDataFolder,String outputDataFolder, String date, File dmcj,
                                File dmcx, File dmmj, File dmmx, String dbUser,
                                String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap);
 }

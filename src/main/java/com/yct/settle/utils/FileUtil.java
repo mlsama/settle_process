@@ -395,12 +395,6 @@ public class FileUtil {
                 bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file,true),"UTF-8"),64);
                 for (int i = 0 ; i < list.size() ; i++){
                     bufferedWriter.write(list.get(i).toString() + System.getProperty("line.separator"));
-                    //浪费时间
-//                    if (i < list.size()-1){
-//                        bufferedWriter.write(list.get(i).toString() + System.getProperty("line.separator"));
-//                    }else {
-//                        bufferedWriter.write(list.get(i).toString());
-//                    }
                 }
                 log.info("写入文件{}成功",file.getAbsolutePath());
             }catch (Exception e) {

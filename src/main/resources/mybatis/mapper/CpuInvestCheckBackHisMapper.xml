@@ -11,10 +11,13 @@
             BAL, TT, ATT, CRN,
             XRN, LPID, LTIM,FLAG,APP
         FROM T_CPU_INVEST_CHECKBACK_HIS
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="countData" resultType="com.yct.settle.pojo.CountData">
-        SELECT count(1) AS notesSum,sum(TF) AS amountSum from T_CPU_INVEST_CHECKBACK_HIS
+        SELECT count(1) AS notesSum,sum(TF) AS amountSum
+          from T_CPU_INVEST_CHECKBACK_HIS
+          WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

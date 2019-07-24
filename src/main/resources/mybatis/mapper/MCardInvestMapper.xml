@@ -17,24 +17,28 @@
               TF, BAL, TT, RN,
               EPID, ETIM, TAC, APP,rownum r
             FROM T_MCARD_INVEST
-            WHERE FLAG = '1' AND <![CDATA[rownum <= #{endNum}]]>
+            WHERE FLAG = '1'
+                  AND <![CDATA[rownum <= #{endNum}]]>
+                  and SETTLE_DATE=#{date,jdbcType=VARCHAR}
+                  and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
           ) WHERE <![CDATA[r > #{startNum}]]>
 
     </select>
 
     <select id="countData" resultType="com.yct.settle.pojo.CountData">
         SELECT count(1) AS notesSum,sum(TF) AS amountSum from T_MCARD_INVEST
-        WHERE FLAG='1'
+        WHERE FLAG='1' and SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="countAllData" resultType="com.yct.settle.pojo.CountData">
         SELECT count(1) AS notesSum,sum(TF) AS amountSum
             from T_MCARD_INVEST
+            WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
 
     </select>
 
     <select id="findAllNotes" resultType="long">
-        SELECT count(1) from T_MCARD_INVEST WHERE FLAG='1'
+        SELECT count(1) from T_MCARD_INVEST WHERE FLAG='1' AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

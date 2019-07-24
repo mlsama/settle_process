@@ -75,7 +75,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         File outputDateDir = new File(outputDataFolder + File.separator + date);
         log.info("开始处理文件夹{}下的充值文件", outputDateDir.getName());
         String fileName = null;
-        File unZipDir = null;
         try {
             if (outputDateDir.exists()) {
                 for (File outZipFile : outputDateDir.listFiles()) {
@@ -101,45 +100,23 @@ public class InvestDataProcessImpl implements InvestDataProcess {
 
                         //落库:压缩文件校验并落库
                         boolean insertFlag = batchInsertInvestDate(outZipFile,inputDataFolder,date,dbUser, dbPassword, odbName, sqlldrDir);
-
-
-
-
-                            File[] unZipFiles = unZipDir.listFiles();
-                            for (File unZipFile : unZipFiles){
-                                String filePreFix = unZipFile.getName().substring(0,2 );
-                                fileNameList.add(filePreFix);
-                                if (fileName.startsWith("CZ") && unZipFile.getName().startsWith("JY")){
-                                    //根据JY行长度判断格式
-                                    isNewCz = FileUtil.isNewCz(unZipFile);
-                                }
-                            }
-                            //如果没有这些文件，则创建空文件
-                            createFiles(unZipDir,fileNameList);
-                            for (File unZipFile : unZipFiles) {
-                                if (!(unZipFile.getName().startsWith("MD") || unZipFile.getName().startsWith("RZ") || unZipFile.getName().startsWith("QS"))) {
-                                    //落库
-                                    boolean insertFlag = batchInsert(date,unZipFile, unZipDir.getName(), dbUser, dbPassword, odbName, sqlldrDir,isNewCz,resultMap,targetFile);
-                                    if (!insertFlag) { //JY,CZ,XZ,LC任一个文件落库失败，直接返回
-                                        //修改
-                                        processResultService.update(new FileProcessResult(fileName, unZipFile.getAbsolutePath(), new Date(), "6555", resultMap.get("msg")));
-                                        //删除解压的文件夹
-                                        FileUtil.deleteFile(unZipDir);
-                                        return false;
-                                    }
-                                }
-                            }
-                            //从数据库取出数据写入dm
-                            writerToDm(fileName, date, dmmj, dmmx, dmcj, dmcx);
-                            //把这个充值文件的统计数据存到数据库表
-                            countInvestDataToDb(fileName);
-                            //删除解压的文件夹
-                            FileUtil.deleteFile(inputUnZipDir);
-                            FileUtil.deleteFile(unZipDir);
-                            resultMap.put("investResultCode", "0000");
-                        } else {
-
+                        if (!insertFlag) {
+                            threadTaskHandle.setIsError(true);
+                            return;
                         }
+                        //从数据库取出数据写入dm
+                        boolean writerToDmFlag = writerToDm(fileName, date, dmmj, dmmx, dmcj, dmcx);
+                        if (!writerToDmFlag){
+                            threadTaskHandle.setIsError(true);
+                            return;
+                        }
+                        //把这个充值文件的统计数据存到数据库表
+                        boolean countInvestDataFlag = countInvestDataToDb(date,fileName);
+                        if (!countInvestDataFlag){
+                            threadTaskHandle.setIsError(true);
+                            return;
+                        }
+                        resultMap.put("investResultCode", "0000");
                     }
                 }
             } else {
@@ -149,13 +126,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         } catch (Exception e) {
             threadTaskHandle.setIsError(true);
             log.error("处理充值文件{}发生异常：{},修改标志，通知其他线程", fileName, e);
-            //删除解压的文件夹
-            FileUtil.deleteFile(unZipDir);
             //修改
             processResultService.update(new FileProcessResult(fileName, null, new Date(), "6555", "处理充值文件发生异常"));
-            return false;
         }
-        return true;
     }
 
     /**
@@ -258,6 +231,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             return false;
                         }
                     }
+                    return true;
                 }else {
                     log.error("{}这个文件里没有JY文件", tempFile.getAbsolutePath());
                     FileUtil.deleteFile(unOutZipFileDir);
@@ -480,7 +454,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 }
             }else if (fileName.startsWith("CZ")){
                 tableName = "T_MCARD_INVEST_CHECKBACK";
-                fieldNames = "(PSN constant '00000000', LCN, FCN, " +
+                fieldNames = "(" +
+                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                        "      PSN constant '00000000', LCN, FCN, " +
                         "      LPID, LTIM, PID, TIM, " +
                         "      TF, BAL, TT, RN, " +
                         "      APP constant 'FF', FLAG, ERRNO)";
@@ -488,7 +464,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 contlFile = new File(sqlldrDir,"mCardInvestCheckBack.ctl");
             }else if (fileName.startsWith("XZ")){
                 tableName = "T_MCARD_INVEST_REVISE_HIS";
-                fieldNames = "(PSN, LCN, FCN, " +
+                fieldNames = "(" +
+                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                        "      PSN, LCN, FCN, " +
                         "      LPID, LTIM, PID, TIM, " +
                         "      TF, BAL, TT, RN, " +
                         "      EPID, ETIM, AI, VC, " +
@@ -497,7 +475,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 contlFile = new File(sqlldrDir,"mCardInvestReviseHis.ctl");
             }else if (fileName.startsWith("LC")){
                 tableName = "T_MCARD_INVEST_CHECKBACK_HIS";
-                fieldNames = "(PSN constant '00000000', LCN, FCN, " +
+                fieldNames = "(" +
+                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                        "      PSN constant '00000000', LCN, FCN, " +
                         "      LPID, LTIM, PID, TIM, " +
                         "      TF, BAL, TT, RN, " +
                         "      APP constant 'FF', FLAG, ERRNO)";
@@ -519,35 +499,46 @@ public class InvestDataProcessImpl implements InvestDataProcess {
 
     /**
      * 统计并落库
+     * @param date
      * @param zipFileName
      */
-    private void countInvestDataToDb(String zipFileName) {
-        long investNotes = 0L;
-        BigDecimal investAmount = new BigDecimal("0");
-        long reviseNotes = 0L;
-        BigDecimal reviseAmount  = new BigDecimal("0") ;
-        if (zipFileName.startsWith("CC")){
-            log.info("统计cpu卡充值,修正的笔数和金额");
-            CountData investCountData = addContDate(cpuInvestMapper.countData(), cpuInvestCheckBackMapper.countData());
-            investNotes = investCountData.getNotesSum();
-            investAmount = investCountData.getAmountSum();
+    private boolean countInvestDataToDb(String date, String zipFileName) {
+        try {
+            long investNotes = 0L;
+            BigDecimal investAmount = new BigDecimal("0");
+            long reviseNotes = 0L;
+            BigDecimal reviseAmount  = new BigDecimal("0") ;
+            if (zipFileName.startsWith("CC")){
+                log.info("统计cpu卡充值,修正的笔数和金额");
+                CountData investCountData = addContDate(cpuInvestMapper.countData(date,zipFileName), cpuInvestCheckBackMapper.countData(date,zipFileName));
+                investNotes = investCountData.getNotesSum();
+                investAmount = investCountData.getAmountSum();
 
-            CountData reviseCountData = addContDate(cpuInvestCheckBackHisMapper.countData(), cpuInvestReviseHisMapper.countData());
-            reviseNotes = reviseCountData.getNotesSum();
-            reviseAmount = reviseCountData.getAmountSum();
-        }else {
-            log.info("统计m1卡充值，修正的笔数和金额");
-            CountData investCountData = addContDate(mCardInvestMapper.countData(), mCardInvestCheckBackMapper.countData());
-            investNotes = investCountData.getNotesSum();
-            investAmount = investCountData.getAmountSum();
+                CountData reviseCountData = addContDate(cpuInvestCheckBackHisMapper.countData(date,zipFileName), cpuInvestReviseHisMapper.countData(date,zipFileName));
+                reviseNotes = reviseCountData.getNotesSum();
+                reviseAmount = reviseCountData.getAmountSum();
+            }else {
+                log.info("统计m1卡充值，修正的笔数和金额");
+                CountData investCountData = addContDate(mCardInvestMapper.countData(date,zipFileName), mCardInvestCheckBackMapper.countData(date,zipFileName));
+                investNotes = investCountData.getNotesSum();
+                investAmount = investCountData.getAmountSum();
 
-            CountData reviseCountData = addContDate(mCardInvestCheckBackHisMapper.countData(), mCardInvestReviseHisMapper.countData());
-            reviseNotes = reviseCountData.getNotesSum();
-            reviseAmount = reviseCountData.getAmountSum();
+                CountData reviseCountData = addContDate(mCardInvestCheckBackHisMapper.countData(date,zipFileName), mCardInvestReviseHisMapper.countData(date,zipFileName));
+                reviseNotes = reviseCountData.getNotesSum();
+                reviseAmount = reviseCountData.getAmountSum();
+            }
+            processResultService.update(
+                    new FileProcessResult(zipFileName,new Date(),"0000","处理成功", investNotes,investAmount,
+                            0L,new BigDecimal("0"),reviseNotes,reviseAmount));
+            return true;
+        }catch (Exception e){
+            log.error("统计充值文件{}的笔数和金额发生异常。",zipFileName);
+            //修改
+            processResultService.update(
+                    new FileProcessResult(zipFileName, null, new Date(),
+                            "6555", "统计充值文件的笔数和金额发生异常"));
+            return false;
         }
-        processResultService.update(
-                new FileProcessResult(zipFileName,new Date(),"0000","处理成功", investNotes,investAmount,
-                                    0L,new BigDecimal("0"),reviseNotes,reviseAmount));
     }
 
     private CountData addContDate(CountData v1,CountData v2){
@@ -556,121 +547,131 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         return v1;
     }
 
-    private void writerToDm(String zipFileName, String settleDate, File dmmj, File dmmx, File dmcj, File dmcx) {
-        log.info("从数据库取充值数据写到对应的dm文件");
-        if (zipFileName.startsWith("CC")){ //cpu卡
-            ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
-            //获取总笔数
-            long allNotes = cpuInvestMapper.findAllNotes();
-            if (allNotes > 0L) {
-                long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
-                while (allNotes > 0L) {
-                    if (allNotes <= pageSize) {
-                        pageSize = allNotes;
-                    }
-                    endNum = startNum + pageSize;
-                    log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
-                    List<CpuInvest> cpuInvestList = cpuInvestMapper.findByWhere(startNum,endNum);
-                    if (cpuInvestList.size() > 0){
-                        for (CpuInvest cpuInvest : cpuInvestList){
-                            CpuTrade cpuTrade = new CpuTrade();
-                            convertToCpuTrade(cpuInvest,cpuTrade,settleDate,zipFileName);
-                            cpuTradeList.add(cpuTrade);
+    private boolean writerToDm(String zipFileName, String settleDate, File dmmj, File dmmx, File dmcj, File dmcx) {
+        try {
+            log.info("从数据库取充值数据写到对应的dm文件");
+            if (zipFileName.startsWith("CC")){ //cpu卡
+                ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
+                //获取总笔数
+                long allNotes = cpuInvestMapper.findAllNotes(settleDate,zipFileName);
+                if (allNotes > 0L) {
+                    long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
+                    while (allNotes > 0L) {
+                        if (allNotes <= pageSize) {
+                            pageSize = allNotes;
                         }
-                    }
-                    FileUtil.writeToFile(dmcj, cpuTradeList);
-                    cpuTradeList.clear();
-                    allNotes -= pageSize;
-                    startNum += pageSize;
-                    count++;
-                }
-            }
-            List<CpuInvestCheckBack> cpuInvestCheckBackList = cpuInvestCheckBackMapper.findByWhere();
-            if (cpuInvestCheckBackList.size() > 0){
-                for (CpuInvestCheckBack cpuInvestCheckBack : cpuInvestCheckBackList){
-                    CpuTrade cpuTrade = new CpuTrade();
-                    convertToCpuTrade(cpuInvestCheckBack,cpuTrade,settleDate,zipFileName);
-                    cpuTradeList.add(cpuTrade);
-                }
-            }
-            FileUtil.writeToFile(dmcj, cpuTradeList);
-            //修正
-            ArrayList<CpuTradeRevise> cpuTradeReviseList = new ArrayList<>();
-            List<CpuInvestReviseHis> cpuInvestReviseHisList = cpuInvestReviseHisMapper.findList();
-            if (cpuInvestReviseHisList.size() > 0){
-                for (CpuInvestReviseHis cpuInvestReviseHis : cpuInvestReviseHisList){
-                    CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
-                    convertToCpuTradeRevise(cpuInvestReviseHis,cpuTradeRevise,settleDate,zipFileName);
-                    cpuTradeReviseList.add(cpuTradeRevise);
-                }
-            }
-            List<CpuInvestCheckBackHis> investCheckBackHisList = cpuInvestCheckBackHisMapper.findList();
-            if (investCheckBackHisList.size() > 0){
-                for (CpuInvestCheckBackHis cpuInvestCheckBackHis : investCheckBackHisList){
-                    CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
-                    convertToCpuTradeRevise(cpuInvestCheckBackHis,cpuTradeRevise,settleDate,zipFileName);
-                    cpuTradeReviseList.add(cpuTradeRevise);
-                }
-            }
-            FileUtil.writeToFile(dmcx, cpuTradeReviseList);
-
-        }else { //m1卡
-            ArrayList<MCardTrade> mCardTradeList = new ArrayList<>();
-            //获取总笔数
-            long allNotes = mCardInvestMapper.findAllNotes();
-            if (allNotes > 0L) {
-                long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
-                while (allNotes > 0L) {
-                    if (allNotes <= pageSize) {
-                        pageSize = allNotes;
-                    }
-                    endNum = startNum + pageSize;
-                    log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
-                    List<MCardInvest> mCardInvestList = mCardInvestMapper.findByWhere(startNum,endNum);
-                    if (mCardInvestList.size() > 0){
-                        for (MCardInvest mCardInvest : mCardInvestList){
-                            MCardTrade mCardTrade = new MCardTrade();
-                            convertToMCardTrade(mCardInvest,mCardTrade,settleDate,zipFileName);
-                            mCardTradeList.add(mCardTrade);
+                        endNum = startNum + pageSize;
+                        log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
+                        List<CpuInvest> cpuInvestList = cpuInvestMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
+                        if (cpuInvestList.size() > 0){
+                            for (CpuInvest cpuInvest : cpuInvestList){
+                                CpuTrade cpuTrade = new CpuTrade();
+                                convertToCpuTrade(cpuInvest,cpuTrade,settleDate,zipFileName);
+                                cpuTradeList.add(cpuTrade);
+                            }
                         }
+                        FileUtil.writeToFile(dmcj, cpuTradeList);
+                        cpuTradeList.clear();
+                        allNotes -= pageSize;
+                        startNum += pageSize;
+                        count++;
                     }
-                    FileUtil.writeToFile(dmmj, mCardTradeList);
-                    mCardTradeList.clear();
-                    allNotes -= pageSize;
-                    startNum += pageSize;
-                    count++;
                 }
-            }
+                List<CpuInvestCheckBack> cpuInvestCheckBackList = cpuInvestCheckBackMapper.findByWhere(settleDate,zipFileName);
+                if (cpuInvestCheckBackList.size() > 0){
+                    for (CpuInvestCheckBack cpuInvestCheckBack : cpuInvestCheckBackList){
+                        CpuTrade cpuTrade = new CpuTrade();
+                        convertToCpuTrade(cpuInvestCheckBack,cpuTrade,settleDate,zipFileName);
+                        cpuTradeList.add(cpuTrade);
+                    }
+                }
+                FileUtil.writeToFile(dmcj, cpuTradeList);
+                //修正
+                ArrayList<CpuTradeRevise> cpuTradeReviseList = new ArrayList<>();
+                List<CpuInvestReviseHis> cpuInvestReviseHisList = cpuInvestReviseHisMapper.findList(settleDate,zipFileName);
+                if (cpuInvestReviseHisList.size() > 0){
+                    for (CpuInvestReviseHis cpuInvestReviseHis : cpuInvestReviseHisList){
+                        CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
+                        convertToCpuTradeRevise(cpuInvestReviseHis,cpuTradeRevise,settleDate,zipFileName);
+                        cpuTradeReviseList.add(cpuTradeRevise);
+                    }
+                }
+                List<CpuInvestCheckBackHis> investCheckBackHisList = cpuInvestCheckBackHisMapper.findList(settleDate,zipFileName);
+                if (investCheckBackHisList.size() > 0){
+                    for (CpuInvestCheckBackHis cpuInvestCheckBackHis : investCheckBackHisList){
+                        CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
+                        convertToCpuTradeRevise(cpuInvestCheckBackHis,cpuTradeRevise,settleDate,zipFileName);
+                        cpuTradeReviseList.add(cpuTradeRevise);
+                    }
+                }
+                FileUtil.writeToFile(dmcx, cpuTradeReviseList);
 
-            List<MCardInvestCheckBack> mCardInvestCheckBackList = mCardInvestCheckBackMapper.findByWhere();
-            if (mCardInvestCheckBackList.size() > 0){
-                for (MCardInvestCheckBack mCardInvestCheckBack : mCardInvestCheckBackList){
-                    MCardTrade mCardTrade = new MCardTrade();
-                    convertToMCardTrade(mCardInvestCheckBack,mCardTrade,settleDate,zipFileName);
-                    mCardTradeList.add(mCardTrade);
+            }else { //m1卡
+                ArrayList<MCardTrade> mCardTradeList = new ArrayList<>();
+                //获取总笔数
+                long allNotes = mCardInvestMapper.findAllNotes(settleDate,zipFileName);
+                if (allNotes > 0L) {
+                    long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
+                    while (allNotes > 0L) {
+                        if (allNotes <= pageSize) {
+                            pageSize = allNotes;
+                        }
+                        endNum = startNum + pageSize;
+                        log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
+                        List<MCardInvest> mCardInvestList = mCardInvestMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
+                        if (mCardInvestList.size() > 0){
+                            for (MCardInvest mCardInvest : mCardInvestList){
+                                MCardTrade mCardTrade = new MCardTrade();
+                                convertToMCardTrade(mCardInvest,mCardTrade,settleDate,zipFileName);
+                                mCardTradeList.add(mCardTrade);
+                            }
+                        }
+                        FileUtil.writeToFile(dmmj, mCardTradeList);
+                        mCardTradeList.clear();
+                        allNotes -= pageSize;
+                        startNum += pageSize;
+                        count++;
+                    }
                 }
-            }
-            FileUtil.writeToFile(dmmj, mCardTradeList);
 
-            //修正
-            ArrayList<MCardTradeRevise> mCardTradeReviseList = new ArrayList<>();
-            List<MCardInvestReviseHis> mCardInvestReviseHisList = mCardInvestReviseHisMapper.findList();
-            if (mCardInvestReviseHisList.size() > 0){
-                for (MCardInvestReviseHis mCardInvestReviseHis : mCardInvestReviseHisList){
-                    MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
-                    convertToMCardTradeRevise(mCardInvestReviseHis,mCardTradeRevise,settleDate,zipFileName);
-                    mCardTradeReviseList.add(mCardTradeRevise);
+                List<MCardInvestCheckBack> mCardInvestCheckBackList = mCardInvestCheckBackMapper.findByWhere(settleDate,zipFileName);
+                if (mCardInvestCheckBackList.size() > 0){
+                    for (MCardInvestCheckBack mCardInvestCheckBack : mCardInvestCheckBackList){
+                        MCardTrade mCardTrade = new MCardTrade();
+                        convertToMCardTrade(mCardInvestCheckBack,mCardTrade,settleDate,zipFileName);
+                        mCardTradeList.add(mCardTrade);
+                    }
                 }
-            }
-            List<MCardInvestCheckBackHis> mCardInvestCheckBackHisList = mCardInvestCheckBackHisMapper.findList();
-            if (mCardInvestCheckBackHisList.size() > 0){
-                for (MCardInvestCheckBackHis mCardInvestCheckBackHis : mCardInvestCheckBackHisList){
-                    MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
-                    convertToMCardTradeRevise(mCardInvestCheckBackHis,mCardTradeRevise,settleDate,zipFileName);
-                    mCardTradeReviseList.add(mCardTradeRevise);
+                FileUtil.writeToFile(dmmj, mCardTradeList);
+
+                //修正
+                ArrayList<MCardTradeRevise> mCardTradeReviseList = new ArrayList<>();
+                List<MCardInvestReviseHis> mCardInvestReviseHisList = mCardInvestReviseHisMapper.findList(settleDate,zipFileName);
+                if (mCardInvestReviseHisList.size() > 0){
+                    for (MCardInvestReviseHis mCardInvestReviseHis : mCardInvestReviseHisList){
+                        MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
+                        convertToMCardTradeRevise(mCardInvestReviseHis,mCardTradeRevise,settleDate,zipFileName);
+                        mCardTradeReviseList.add(mCardTradeRevise);
+                    }
                 }
+                List<MCardInvestCheckBackHis> mCardInvestCheckBackHisList = mCardInvestCheckBackHisMapper.findList(settleDate,zipFileName);
+                if (mCardInvestCheckBackHisList.size() > 0){
+                    for (MCardInvestCheckBackHis mCardInvestCheckBackHis : mCardInvestCheckBackHisList){
+                        MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
+                        convertToMCardTradeRevise(mCardInvestCheckBackHis,mCardTradeRevise,settleDate,zipFileName);
+                        mCardTradeReviseList.add(mCardTradeRevise);
+                    }
+                }
+                FileUtil.writeToFile(dmmx,mCardTradeReviseList);
             }
-            FileUtil.writeToFile(dmmx,mCardTradeReviseList);
+            return true;
+        }catch (Exception e){
+            log.error("把文件{}内容写到对应的dm文件发生异常。",zipFileName);
+            //修改
+            processResultService.update(
+                    new FileProcessResult(zipFileName, null, new Date(),
+                            "6555", "统计充值文件的笔数和金额发生异常"));
+            return false;
         }
     }
 
