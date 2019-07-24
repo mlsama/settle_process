@@ -16,5 +16,5 @@ public interface MCardInvestMapper {
 
     long findAllNotes();
 
-    CountData countAllData();
+    CountData countAllData(@Param("date")String date, @Param("zipFileName")String outZipFileName);
 }

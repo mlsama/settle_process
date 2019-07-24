@@ -14,10 +14,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
-public class FileContentCheck {
+public class FileCheckError {
 
     /**
      * 清算日期<br>
@@ -42,6 +43,12 @@ public class FileContentCheck {
      * 数据库字段:CARD_TYPE
      */
     private String cardType;
+
+    /**
+     * 校验时间  <br>
+     * 数据库字段:CHECK_DATE
+     */
+    private Date checkDate;
 
     /**
      * 结果码(0000:成功)<br>

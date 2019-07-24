@@ -21,5 +21,5 @@ public interface CpuInvestMapper {
 
     long findAllNotes();
 
-    CountData countAllData();
+    CountData countAllData(@Param("date") String date, @Param("zipFileName") String zipFileName);
 }

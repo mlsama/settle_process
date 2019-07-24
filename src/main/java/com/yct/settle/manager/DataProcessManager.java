@@ -60,7 +60,9 @@ public class DataProcessManager {
     @Resource
     private ThreadTaskHandle threadTaskHandle;
 
-
+    /**
+     * 结算数据接口入口
+     */
     public void settleDataProcess() {
         try {
             File inputDir = new File(inputDataFolder);
@@ -97,6 +99,7 @@ public class DataProcessManager {
     private void processOneDayData(File dateDir,File sqlldrDir, File resultDir) {
         if (dateDir.isDirectory()){
             threadTaskHandle.setIsError(false);
+            //设定3个同步点
             CyclicBarrier barrier = new CyclicBarrier(3);
             Map<String,String> resultMap = new HashMap<>();
             File dm = null;

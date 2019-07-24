@@ -50,7 +50,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
     @Resource
     private SettleAuditMapper settleAuditMapper;
     @Resource
-    private FileContentCheckMapper fileContentCheckMapper;
+    private FileCheckErrorMapper fileCheckErrorMapper;
 
 
 
@@ -235,7 +235,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     }else {
                         String msg = "cpu卡公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
                         log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                                 msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                                 qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
                         return false;
@@ -243,7 +243,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 }else {
                     String msg = "cpu卡公交消费文件错误文件的笔数与消费文件错误笔数不符";
                     log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                             msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                             null,null));
                     return false;
@@ -270,7 +270,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     }else {
                         String msg = "cpu卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
                         log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                                 msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                                 qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
                         return false;
@@ -278,7 +278,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 }else {
                     String msg = "cpu卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
                     log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                             msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                             null,null));
                     return false;
@@ -316,7 +316,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     }else {
                         String msg = "m1卡公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
                         log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                                 msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                                 qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
                         return false;
@@ -324,7 +324,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 }else {
                     String msg = "m1卡公交消费文件错误文件的笔数与消费文件错误笔数不符";
                     log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                             msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                             null,null));
                     return false;
@@ -352,7 +352,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     }else {
                         String msg = "m1卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
                         log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                                 msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                                 qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
                         return false;
@@ -360,7 +360,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 }else {
                     String msg = "m1卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
                     log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileContentCheckMapper.insert(new FileContentCheck(date,inZipFileName,"02","01","6555",
+                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
                             msg,0L,null,0L,null,cpuCwNotes,cwNotes,
                             null,null));
                     return false;

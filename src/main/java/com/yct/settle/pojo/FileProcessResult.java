@@ -35,9 +35,9 @@ public class FileProcessResult{
         this.reviseAmount = reviseAmount;
     }
 
-    public FileProcessResult(String zipFileName, String fileName, Date endTime, String resultCode, String resultMsg) {
+    public FileProcessResult(String zipFileName, String errorFileName, Date endTime, String resultCode, String resultMsg) {
         this.zipFileName = zipFileName;
-        this.fileName = fileName;
+        this.errorFileName = errorFileName;
         this.endTime = endTime;
         this.resultCode = resultCode;
         this.resultMsg = resultMsg;
@@ -71,11 +71,11 @@ public class FileProcessResult{
      * 异常的文件<br>
      * 数据库字段:ERROR_FILE_NAME
      */
-    private String fileName;
+    private String errorFileName;
 
     /**
      * 开始处理的时间<br>
-     * 数据库字段:STAER_TIME
+     * 数据库字段:START_TIME
      */
     private Date startTime;
 
