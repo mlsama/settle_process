@@ -21,6 +21,8 @@
               SELECT 1
                 FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
             ) AND <![CDATA[rownum <= #{endNum}]]>
+              AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
         ) WHERE <![CDATA[r > #{startNum}]]>
     </select>
 
@@ -30,7 +32,8 @@
         WHERE NOT EXISTS (
           SELECT 1
             FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
-        )
+        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+          and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="findAllNotes" resultType="long">
@@ -38,20 +41,22 @@
         WHERE NOT EXISTS (
         SELECT 1
         FROM T_MCARD_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
-        )
+        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+          and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="findCwNotes" resultType="long">
-        SELECT count(1) from
+         SELECT count(1) from
         (
-          SELECT PID,PSN FROM T_MCARD_CONSUME_NOBUS
+          SELECT PID,PSN FROM T_MCARD_CONSUME_NOBUS WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
           INTERSECT
-          SELECT PID,PSN FROM T_MCARD_CONSUME_ERROR_NOBUS
+          SELECT PID,PSN FROM T_MCARD_CONSUME_ERROR_NOBUS WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
         )
     </select>
 
     <select id="countCwNotes" resultType="long">
         SELECT count(1) FROM T_MCARD_CONSUME_ERROR_NOBUS
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

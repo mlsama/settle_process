@@ -11,18 +11,19 @@
         XRN, EPID, ETIM, LPID,
         LTIM,TAC
         FROM T_CPU_CUSTOMER_SERVICE
+         WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="countInvestAmountAndNum" resultType="com.yct.settle.pojo.CountData">
       SELECT count(1) AS notesSum,sum(TF) AS amountSum
           from T_CPU_CUSTOMER_SERVICE
-          WHERE ATT='14'
+          WHERE ATT='14' AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="countConsumeAmountAndNum" resultType="com.yct.settle.pojo.CountData">
       SELECT count(1) AS notesSum,sum(TF) AS amountSum
           from T_CPU_CUSTOMER_SERVICE
-          WHERE ATT != '14'
+          WHERE ATT != '14' AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

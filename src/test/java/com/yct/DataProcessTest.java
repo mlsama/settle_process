@@ -53,7 +53,7 @@ public class DataProcessTest {
     @Test
     public void convertStringTest(){
         //获取总笔数
-        long allNotes = mCardConsumeMapper.findAllNotes();
+        long allNotes = mCardConsumeMapper.findAllNotes("","");
         if (allNotes > 0L){
             long pageSize = 1000000L,startNum = 0L,count = 1L,endNum;
             while (allNotes > 0L){
@@ -72,13 +72,13 @@ public class DataProcessTest {
 
     @Test
     public void cpuConsumeMapperTest(){
-        List<CpuConsume> byWhere = cpuConsumeMapper.findByWhere(0, 100);
+        List<CpuConsume> byWhere = cpuConsumeMapper.findByWhere(0, 100,"","");
         System.out.println(byWhere);
     }
 
     @Test
     public void mCardConsumeMapperTest(){
-        List<MCardConsume> byWhere = mCardConsumeMapper.findByWhere(0L, 10L);
+        List<MCardConsume> byWhere = mCardConsumeMapper.findByWhere(0L, 10L,"","");
         System.out.println(byWhere.size());
     }
 
@@ -94,7 +94,7 @@ public class DataProcessTest {
     }
     @Test
     public void mCardConsumeReviseTest(){
-        List<MCardConsumeRevise> reviseList = mCardConsumeReviseMapper.findList();
+        List<MCardConsumeRevise> reviseList = mCardConsumeReviseMapper.findList("","");
         for (MCardConsumeRevise mCardConsumeRevise : reviseList){
             System.out.println(1);
         }

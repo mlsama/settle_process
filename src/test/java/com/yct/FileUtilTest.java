@@ -18,7 +18,7 @@ public class FileUtilTest {
     }
     @Test
     public void zipTest(){
-       FileUtil.zipV2("E:\\sqlldrTest","E:\\sqlldrTest.ZIP");
+       FileUtil.zipV2("E:\\sqlldrTest\\CZ2002000120120609","E:\\sqlldrTest\\CZ2002000120120609.zip");
     }
     @Test
     public void unzipTest(){

@@ -1,6 +1,7 @@
 package com.yct.settle.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.math.BigDecimal;
 
@@ -12,7 +13,9 @@ import java.math.BigDecimal;
 @Mapper
 public interface SettleAuditMapper {
 
-    BigDecimal countTotalAmount();
+    BigDecimal countTotalAmount(@Param("date") String date,
+                                @Param("zipFileName") String zipFileName);
 
-    BigDecimal countTotalAmountZ();
+    BigDecimal countTotalAmountZ(@Param("date") String date,
+                                 @Param("zipFileName") String zipFileName);
 }

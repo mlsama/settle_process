@@ -10,9 +10,9 @@ import java.util.Map;
  */
 public interface ConsumeDataProcess {
 
-    boolean batchInsert(File cOutputDateDir, String unZipDirName, File unZipFile, Boolean flag, File sqlldrDir, String dbUser, String dbPassword, String odbName);
+    boolean writerTODM(File dmmj, File dmmx, File dmcj, File dmcx, String settleDate, String zipFileName,Boolean isBusFile);
 
-    void writerTODM(File dmmj, File dmmx, File dmcj, File dmcx, String settleDate, String zipFileName,Boolean isBusFile);
-
-    boolean processConsumeFiles(String inputDataFolder, String outputDataFolder, String name, File dmcj, File dmcx, File dmmj, File dmmx, String dbUser, String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap);
+    void processConsumeFiles(String inputDataFolder, String outputDataFolder, String name, File dmcj,
+                                File dmcx, File dmmj, File dmmx, String dbUser, String dbPassword, String odbName,
+                                File sqlldrDir, Map<String, String> resultMap);
 }

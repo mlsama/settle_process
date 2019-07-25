@@ -10,19 +10,20 @@
         TF, BAL, TT, RN,
         EPID, ETIM, TAC
         FROM T_MCARD_CUSTOMER_SERVICE
+         WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="countInvestAmountAndNum" resultType="com.yct.settle.pojo.CountData">
       SELECT count(1) AS notesSum,sum(TF) AS amountSum
           from T_MCARD_CUSTOMER_SERVICE
-          WHERE TT='14'
+          WHERE TT='14' AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
 
     </select>
 
     <select id="countConsumeAmountAndNum" resultType="com.yct.settle.pojo.CountData">
       SELECT count(1) AS notesSum,sum(TF) AS amountSum
           from T_MCARD_CUSTOMER_SERVICE
-          WHERE TT !='14'
+          WHERE TT !='14' AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
 
     </select>
 

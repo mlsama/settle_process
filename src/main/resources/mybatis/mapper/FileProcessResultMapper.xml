@@ -9,7 +9,7 @@
         INVEST_NOTES, INVEST_AMOUNT, CONSUME_NOTES,
         CONSUME_AMOUNT)
         values (#{settleDate,jdbcType=VARCHAR}, #{zipFileName,jdbcType=VARCHAR}, #{zipFileType,jdbcType=VARCHAR},
-        #{cradType,jdbcType=VARCHAR}, #{fileName,jdbcType=VARCHAR}, SYSDATE,
+        #{cradType,jdbcType=VARCHAR}, #{errorFileName,jdbcType=VARCHAR}, SYSDATE,
         #{endTime,jdbcType=TIMESTAMP}, #{resultCode,jdbcType=VARCHAR}, #{resultMsg,jdbcType=VARCHAR},
         #{investNotes,jdbcType=DECIMAL}, #{investAmount,jdbcType=DECIMAL}, #{consumeNotes,jdbcType=DECIMAL},
         #{consumeAmount,jdbcType=DECIMAL})
@@ -30,7 +30,7 @@
             <if test="cardType != null">
                 CARD_TYPE,
             </if>
-            <if test="fileName != null">
+            <if test="errorFileName != null">
                 ERROR_FILE_NAME,
             </if>
             START_TIME,
@@ -70,8 +70,8 @@
             <if test="cardType != null">
                 #{cardType,jdbcType=VARCHAR},
             </if>
-            <if test="fileName != null">
-                #{fileName,jdbcType=VARCHAR},
+            <if test="errorFileName != null">
+                #{errorFileName,jdbcType=VARCHAR},
             </if>
             SYSDATE,
             <if test="endTime != null">
@@ -101,8 +101,8 @@
     <update id="update" parameterType="com.yct.settle.pojo.FileProcessResult">
         UPDATE T_FILE_PROCESS_RESULT SET
         <trim suffixOverrides=",">
-            <if test="fileName != null">
-                ERROR_FILE_NAME = #{fileName,jdbcType=VARCHAR},
+            <if test="errorFileName != null">
+                ERROR_FILE_NAME = #{errorFileName,jdbcType=VARCHAR},
             </if>
             <if test="endTime != null">
                 END_TIME =  #{endTime,jdbcType=TIMESTAMP},

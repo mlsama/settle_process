@@ -4,6 +4,7 @@ import com.yct.settle.pojo.CountData;
 import com.yct.settle.pojo.CpuConsume;
 import com.yct.settle.pojo.CpuCustomerService;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -15,13 +16,16 @@ import java.util.List;
 @Mapper
 public interface CpuCustomerServiceMapper {
 
-    List<CpuCustomerService> findList();
+    List<CpuCustomerService> findList(@Param("date") String date,
+                                      @Param("zipFileName") String zipFileName);
 
     /**
      * 统计客服数据中的充值
      * @return
      */
-    CountData countInvestAmountAndNum();
+    CountData countInvestAmountAndNum(@Param("date") String date,
+                                      @Param("zipFileName") String zipFileName);
 
-    CountData countConsumeAmountAndNum();
+    CountData countConsumeAmountAndNum(@Param("date") String date,
+                                       @Param("zipFileName") String zipFileName);
 }

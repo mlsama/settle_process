@@ -15,15 +15,24 @@ import java.util.List;
 @Mapper
 public interface CpuConsumeMapper {
 
-    List<CpuConsume> findByWhere(@Param("startNum") long startNum, @Param("endNum") long endNum);
+    List<CpuConsume> findByWhere(@Param("startNum") long startNum,
+                                 @Param("endNum") long endNum,
+                                 @Param("date") String date,
+                                 @Param("zipFileName") String zipFileName);
 
-    CountData countAmountAndNum();
+    CountData countAmountAndNum(@Param("date") String date,
+                                @Param("zipFileName") String zipFileName);
 
-    long findAllNotes();
+    long findAllNotes(@Param("date") String date,
+                      @Param("zipFileName") String zipFileName);
+
     //统计与错误表pid,psn一致的记录数
-    long findCwNotes();
+    long findCwNotes(@Param("date") String date,
+                     @Param("zipFileName") String zipFileName);
+
     //统计错误表记录数
-    long countCwNotes();
+    long countCwNotes(@Param("date") String date,
+                      @Param("zipFileName") String zipFileName);
 
 
 }

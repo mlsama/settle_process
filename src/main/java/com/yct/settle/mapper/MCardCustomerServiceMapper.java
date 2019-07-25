@@ -3,6 +3,7 @@ package com.yct.settle.mapper;
 import com.yct.settle.pojo.CountData;
 import com.yct.settle.pojo.MCardCustomerService;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -14,9 +15,12 @@ import java.util.List;
 @Mapper
 public interface MCardCustomerServiceMapper {
 
-    List<MCardCustomerService> findList();
+    List<MCardCustomerService> findList(@Param("date") String date,
+                                        @Param("zipFileName") String zipFileName);
 
-    CountData countInvestAmountAndNum();
+    CountData countInvestAmountAndNum(@Param("date") String date,
+                                      @Param("zipFileName") String zipFileName);
 
-    CountData countConsumeAmountAndNum();
+    CountData countConsumeAmountAndNum(@Param("date") String date,
+                                       @Param("zipFileName") String zipFileName);
 }

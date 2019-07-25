@@ -11,9 +11,11 @@
               TIM, TF, BAL, FEE,
               TT, RN, EPID, ETIM, TAC,FLAG
         FROM T_MCARD_CONSUME_REVISE
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
     <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
        SELECT count(1) AS notesSum,SUM(TF) AS amountSum FROM T_MCARD_CONSUME_REVISE
+       WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

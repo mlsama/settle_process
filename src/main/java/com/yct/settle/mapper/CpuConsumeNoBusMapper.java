@@ -15,13 +15,20 @@ import java.util.List;
 @Mapper
 public interface CpuConsumeNoBusMapper {
 
-    List<CpuConsumeNoBus> findByWhere(@Param("startNum") long startNum, @Param("endNum") long endNum);
+    List<CpuConsumeNoBus> findByWhere(@Param("startNum") long startNum,
+                                      @Param("endNum") long endNum,
+                                      @Param("date") String date,
+                                      @Param("zipFileName") String zipFileName);
 
-    CountData countAmountAndNum();
+    CountData countAmountAndNum(@Param("date") String date,
+                                @Param("zipFileName") String zipFileName);
 
-    long findAllNotes();
+    long findAllNotes(@Param("date") String date,
+                      @Param("zipFileName") String zipFileName);
 
-    long findCwNotes();
+    long findCwNotes(@Param("date") String date,
+                     @Param("zipFileName") String zipFileName);
 
-    long countCwNotes();
+    long countCwNotes(@Param("date") String date,
+                      @Param("zipFileName") String zipFileName);
 }

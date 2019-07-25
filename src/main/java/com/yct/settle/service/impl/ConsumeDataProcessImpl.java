@@ -71,28 +71,22 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
      * @return
      */
     @Override
-    public boolean processConsumeFiles(String inputDataFolder, String outputDataFolder, String date,
+    public void processConsumeFiles(String inputDataFolder, String outputDataFolder, String date,
                                        File dmcj, File dmcx, File dmmj, File dmmx, String dbUser,
                                        String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
         String inZipFileName = null;
-        File unZipDir = null;
         try {
             //处理消费文件
             File inputDateDir = new File(inputDataFolder + File.separator + date);
-            log.info("开始处理文件夹{}下的消费文件",inputDateDir.getName());
             if (inputDateDir.exists()) {
-                Boolean isBusFile = false;
-                //找到对应output日期文件夹
-                File cOutputDateDir = new File(outputDataFolder + File.separator + date);
-                File[] inZipFiles = inputDateDir.listFiles();
-                for (File inZipFile : inZipFiles) {
+                log.info("开始处理文件夹{}下的消费文件",inputDateDir.getName());
+                for (File inZipFile : inputDateDir.listFiles()) {
 
                     //其他线程检查
                     if (threadTaskHandle.getIsError()) {
                         log.info("有线程发生了异常，处理充值文件的线程无需再执行！");
-                        return false;
+                        return ;
                     }
-
                     inZipFileName = inZipFile.getName();
                     //处理inputDate下的一个压缩文件
                     if (inZipFileName.startsWith("CX") || inZipFileName.startsWith("XF") ||
@@ -122,453 +116,530 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         result.setZipFileName(inZipFileName);
                         result.setCardType(cardType);
                         processResultService.delAndInsert(result);
-                        Boolean lean = FileUtil.unZip(inZipFile);
-                        if (lean) {
-                            //进入解压后的文件夹
-                            String unZipDirName = inZipFile.getName().substring(0, inZipFile.getName().indexOf("."));
-                            unZipDir = new File(inputDateDir, unZipDirName);
-                            File[] unZipFiles = unZipDir.listFiles();
-                            boolean b = false;
-                            boolean jyIsNull = false;
-                            for (File unZipFile : unZipFiles) {
-                                if ("02".equals(zipFileType) && unZipFile.getName().startsWith("JY")) { //消费
-                                    if (unZipFile.length() > 0){    //JY为空
-                                        isBusFile = FileUtil.isBusFile(unZipDirName, unZipFile);
-                                        //落库
-                                        b = batchInsert(cOutputDateDir, unZipDirName, unZipFile, isBusFile, sqlldrDir,
-                                                dbUser,dbPassword,odbName);
-                                    }else {
-                                        b = true;
-                                        jyIsNull = true;
-                                    }
-                                }else  if ("03".equals(zipFileType) && unZipFile.getName().startsWith("JY")) { //客服
-                                    b = customerServiceDataProcess.batchInsert(unZipDirName, unZipFile, sqlldrDir,
-                                            dbUser,dbPassword,odbName);
-                                }else {
-                                    continue;
-                                }
-                                if (!b){
-                                    processResultService.update(new FileProcessResult(inZipFileName, unZipFile.getAbsolutePath(),new Date(),"6555","落库失败"));
-                                    //删除解压的文件夹
-                                    FileUtil.deleteFile(unZipDir);
-                                    return false;
-                                }
-                                break;  //只需要处理JY文件
-                            }
-                            if (jyIsNull){
-                                FileUtil.deleteFile(unZipDir);
-                                continue;
-                            }
-                            //对消费进行文件内容校验,并把这个消费文件的统计数据存到数据库
-                            boolean audit = auditAndInsert(inZipFileName,isBusFile,date);
-                            if (audit){
-                                //从数据库取出数据写入dm
-                                writerConsumeOrCustomerToDm(dmmj,dmmx,dmcj,dmcx,date,inZipFileName,isBusFile,zipFileType);
-                                //删除解压的文件夹
-                                FileUtil.deleteFile(unZipDir);
-                            }else {
-                                threadTaskHandle.setIsError(true);
-                                log.error("处理消费文件{}发生异常,修改标志，通知其他线程", inZipFile);
-                                //删除解压的文件夹
-                                FileUtil.deleteFile(unZipDir);
-                                //修改
-                                processResultService.update(new FileProcessResult(inZipFileName,inZipFile.getAbsolutePath(),new Date(),"6555","文件内容有误"));
-                                return false;
-                            }
-                        } else {
+
+                       boolean insertFlag = insertConsumeOrCustomerData(date,inZipFile,outputDataFolder,zipFileType,
+                                                            dbUser,dbPassword,odbName,sqlldrDir,resultMap);
+                        if (!insertFlag){
                             threadTaskHandle.setIsError(true);
-                            log.error("处理消费文件{}发生异常,修改标志，通知其他线程", inZipFile);
-                            //删除解压的文件夹
-                            FileUtil.deleteFile(unZipDir);
-                            //修改
-                            processResultService.update(new FileProcessResult(inZipFileName,inZipFile.getAbsolutePath(),new Date(),"6555","解压失败"));
-                            return false;
+                            return ;
+                        }
+                        //对消费进行文件内容校验,并把这个消费文件的统计数据存到数据库
+                        String type = resultMap.get("isBusFile");
+                        boolean isBusFile = false;
+                        if ("yes".equals(type)){
+                            isBusFile = true;
+                        }
+                        boolean audit = auditAndCount(inZipFileName,isBusFile,date);
+                        if (!audit){
+                            threadTaskHandle.setIsError(true);
+                            return;
+                        }
+                        //从数据库取出数据写入dm
+                        boolean writeFlag = writerConsumeOrCustomerToDm(dmmj,dmmx,dmcj,dmcx,date,inZipFileName,isBusFile,zipFileType);
+                        if (!writeFlag){
+                            threadTaskHandle.setIsError(true);
+                            return;
                         }
                     }
                 }
             }
+            resultMap.put("consumeResultCode","0000");
         }catch (Exception e){
             threadTaskHandle.setIsError(true);
             log.error("处理消费文件{}发生异常：{},修改标志，通知其他线程", inZipFileName, e);
-            //删除解压的文件夹
-            FileUtil.deleteFile(unZipDir);
             //修改
             processResultService.update(new FileProcessResult(inZipFileName,null,new Date(),
                         "6555","处理消费或者客服文件发生异常"));
-            return false;
+            return ;
         }
-        resultMap.put("consumeResultCode","0000");
-        return true;
     }
 
-    private boolean auditAndInsert(String inZipFileName, boolean isBusFile, String date) {
+    /**
+     * 导入消费或者客服数据
+     * @param date  清算日期
+     * @param inZipFile input下的一个压缩文件
+     * @param outputDataFolder  output文件夹
+     * @param zipFileType   压缩文件类型
+     * @param dbUser
+     * @param dbPassword
+     * @param odbName
+     * @param sqlldrDir
+     * @param resultMap
+     * @return
+     */
+    private boolean insertConsumeOrCustomerData(String date, File inZipFile, String outputDataFolder, String zipFileType,
+                                                String dbUser, String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
+        File unInZipFileDir = null;   //input解压目录
+        File unOutZipFileDir = null;  //output解压目录
+        boolean isBusFile = false;    //是否是公交文件
+        try {
+            //处理已经解压过的文件夹
+            if (inZipFile.getName().indexOf(".") == -1) {
+                unInZipFileDir = new File(inZipFile.getParent(), inZipFile.getName().substring(0, inZipFile.getName().indexOf(".")));
+                if (unInZipFileDir.exists()) {
+                    FileUtil.zipV2(inZipFile.getAbsolutePath(),unInZipFileDir.getAbsolutePath());
+                }
+            }
+            //解压input文件
+            if (FileUtil.unZip(inZipFile)){
+                //进入解压后的文件夹
+                String unInZipDirName = inZipFile.getName().substring(0, inZipFile.getName().indexOf("."));
+                unInZipFileDir = new File(inZipFile.getParent(), unInZipDirName);
+                File tempFile = null;
+                for (File unInZipFile : unInZipFileDir.listFiles()){
+                    if (unInZipFile.getName().startsWith("JY") && unInZipFile.length() > 0){
+                        tempFile = unInZipFile;
+                        if ("02".equals(zipFileType)){  //消费文件
+                            isBusFile = FileUtil.isBusFile(unInZipDirName, unInZipFile);
+                            if (isBusFile){
+                                resultMap.put("isBusFile","yes");
+                            }else {
+                                resultMap.put("isBusFile","no");
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (tempFile != null){
+                    boolean insertFlag = false;
+                    if ("02".equals(zipFileType)){  //消费
+                        //获取output对应的文件夹
+                        File outputDateDir = new File(outputDataFolder + File.separator + date);
+                        for (File outputZipFile : outputDateDir.listFiles()){
+                            if (outputZipFile.getName().startsWith(unInZipFileDir.getName())){
+                                //解压
+                                if (FileUtil.unZip(outputZipFile)){
+                                    unOutZipFileDir = new File(outputDateDir,outputZipFile.getName().substring(0,outputZipFile.getName().indexOf(".")));
+                                }else {
+                                    log.error("解压output的文件{}失败,修改标志，通知其他线程", outputZipFile.getAbsolutePath());
+                                    //删除解压的文件夹
+                                    FileUtil.deleteFile(unInZipFileDir);
+                                    FileUtil.deleteFile(unOutZipFileDir);
+                                    //修改
+                                    processResultService.update(
+                                            new FileProcessResult(outputZipFile.getName(), null, new Date(),
+                                                    "6555", "解压output文件失败"));
+                                    return false;
+                                }
+                            }
+                        }
+                        //落库
+                        insertFlag = batchInsert(date,unOutZipFileDir, inZipFile.getName(), tempFile, isBusFile, sqlldrDir,
+                                                        dbUser,dbPassword,odbName);
+                    }else  if ("03".equals(zipFileType)) { //客服
+                        insertFlag = customerServiceDataProcess.batchInsert(unInZipDirName, tempFile, sqlldrDir,
+                                                                                            dbUser,dbPassword,odbName);
+                    }
+                    FileUtil.deleteFile(unInZipFileDir);
+                    FileUtil.deleteFile(unOutZipFileDir);
+                    return insertFlag;
+                }else {
+                    log.error("{}没有JY文件,无需处理。",inZipFile.getAbsolutePath());
+                    FileUtil.deleteFile(unInZipFileDir);
+                    FileUtil.deleteFile(unOutZipFileDir);
+                    //修改
+                    processResultService.update(
+                            new FileProcessResult(inZipFile.getName(), null, new Date(),
+                                    "0000", "input的压缩文件里的JY文件没有数据，无需处理。"));
+                    return true;
+                }
+            }else{
+                log.error("解压input文件{}失败,修改标志，通知其他线程", inZipFile.getAbsolutePath());
+                //删除解压的文件夹
+                FileUtil.deleteFile(unInZipFileDir);
+                //修改
+                processResultService.update(
+                        new FileProcessResult(inZipFile.getName(), null, new Date(),
+                                "6555", "解压input文件失败"));
+                return false;
+            }
+
+        }catch (Exception e){
+            log.error("处理消费文件{}发生异常：{},修改标志，通知其他线程", inZipFile.getAbsolutePath(), e);
+            //删除解压的文件夹
+            FileUtil.deleteFile(unInZipFileDir);
+            FileUtil.deleteFile(unOutZipFileDir);
+            //修改
+            processResultService.update(new FileProcessResult(inZipFile.getName(),null,new Date(),
+                    "6555","处理消费或者客服文件发生异常"));
+            return false;
+        }
+    }
+
+    private boolean auditAndCount(String inZipFileName, boolean isBusFile, String date) {
         long investNotes = 0L;
         BigDecimal investAmount = new BigDecimal("0");
         long consumeNotes = 0L;
         BigDecimal consumeAmount = new BigDecimal("0");
         long reviseNotes = 0L;
         BigDecimal reviseAmount = new BigDecimal("0");
+        try {
+            if (inZipFileName.startsWith("CX")){    //cpu消费文件
+                if (isBusFile){ //公交
+                    log.info("cpu卡公交消费文件内容校验");
+                    long cpuCwNotes = cpuConsumeMapper.findCwNotes(date,inZipFileName);
+                    long cwNotes = cpuConsumeMapper.countCwNotes(date,inZipFileName);
+                    //校验错误笔数
+                    if (cpuCwNotes == cwNotes){
+                        //校验清算金额
+                        BigDecimal qsTotalAmount = settleAuditMapper.countTotalAmount(date,inZipFileName);
+                        if (qsTotalAmount == null){
+                            qsTotalAmount = new BigDecimal("0");
+                        }
+                        CountData cpuConsumeCountData = cpuConsumeMapper.countAmountAndNum(date,inZipFileName);
+                        if (cpuConsumeCountData == null){
+                            cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
+                        }
+                        if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0){
+                            log.info("校验成功。cpu卡公交消费文件统计并落库");
+                            consumeNotes = cpuConsumeCountData.getNotesSum();
+                            consumeAmount = cpuConsumeCountData.getAmountSum();
+                            CountData cpuConsumeReviseCountData = cpuConsumeReviseMapper.countAmountAndNum(date,inZipFileName);
+                            reviseNotes = cpuConsumeReviseCountData.getNotesSum();
+                            reviseAmount = cpuConsumeReviseCountData.getAmountSum();
+                        }else {
+                            String msg = "cpu卡公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
+                            log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
+                            fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                    msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                    qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
+                            //修改
+                            processResultService.update(
+                                    new FileProcessResult(inZipFileName,null, new Date(),
+                                            "6555", "文件金额校验失败"));
+                            return false;
+                        }
+                    }else {
+                        String msg = "cpu卡公交消费文件错误文件的笔数与消费文件错误笔数不符";
+                        log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                null,null));
+                        //修改
+                        processResultService.update(
+                                new FileProcessResult(inZipFileName,null, new Date(),
+                                        "6555", "文件笔数校验失败"));
+                        return false;
+                    }
+                }else { //cpu卡非公交
+                    log.info("cpu卡非公交消费文件内容校验");
+                    long cpuCwNotes = cpuConsumeNoBusMapper.findCwNotes(date,inZipFileName);
+                    long cwNotes = cpuConsumeNoBusMapper.countCwNotes(date,inZipFileName);
+                    //校验错误笔数
+                    if (cpuCwNotes == cwNotes) {
+                        //校验清算金额
+                        BigDecimal qsTotalAmount = settleAuditMapper.countTotalAmount(date, inZipFileName);
+                        if (qsTotalAmount == null){
+                            qsTotalAmount = new BigDecimal("0");
+                        }
+                        CountData cpuConsumeCountData = cpuConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
+                        if (cpuConsumeCountData == null){
+                            cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
+                        }
+                        if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
+                            log.info("校验成功。cpu卡非公交消费文件统计并落库");
+                            consumeNotes = cpuConsumeCountData.getNotesSum();
+                            consumeAmount = cpuConsumeCountData.getAmountSum();
+                        }else {
+                            String msg = "cpu卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
+                            log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
+                            fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                    msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                    qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
+                            //修改
+                            processResultService.update(
+                                    new FileProcessResult(inZipFileName,null, new Date(),
+                                            "6555", "文件金额校验失败"));
+                            return false;
+                        }
+                    }else {
+                        String msg = "cpu卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
+                        log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                null,null));
+                        //修改
+                        processResultService.update(
+                                new FileProcessResult(inZipFileName,null, new Date(),
+                                        "6555", "文件笔数校验失败"));
+                        return false;
+                    }
+                }
+            }else if (inZipFileName.startsWith("XF")){  //m1卡
+                if (isBusFile){
+                    log.info("m1卡公交消费文件内容校验");
+                    long cpuCwNotes = mCardConsumeMapper.findCwNotes(date, inZipFileName);
+                    long cwNotes = mCardConsumeMapper.countCwNotes(date, inZipFileName);
+                    //校验错误笔数
+                    if (cpuCwNotes == cwNotes) {
+                        //校验清算金额
+                        BigDecimal qsTotalAmount = null;
+                        if (inZipFileName.startsWith("XF268")){
+                            qsTotalAmount = settleAuditMapper.countTotalAmountZ(date, inZipFileName);
+                        }else {
+                            qsTotalAmount = settleAuditMapper.countTotalAmount(date, inZipFileName);
+                        }
+                        if (qsTotalAmount == null){
+                            qsTotalAmount = new BigDecimal("0");
+                        }
+                        CountData mConsumeCountData = mCardConsumeMapper.countAmountAndNum(date, inZipFileName);
+                        if (mConsumeCountData == null) {
+                            mConsumeCountData.setAmountSum(new BigDecimal("0"));
+                        }
+                        if (qsTotalAmount.compareTo(mConsumeCountData.getAmountSum()) == 0) {
+                            log.info("校验成功.m1卡公交消费文件统计数据并落库");
+                            consumeNotes = mConsumeCountData.getNotesSum();
+                            consumeAmount = mConsumeCountData.getAmountSum();
+                            CountData cpuConsumeRevise = mCardConsumeReviseMapper.countAmountAndNum(date, inZipFileName);
+                            reviseNotes = cpuConsumeRevise.getNotesSum();
+                            reviseAmount = cpuConsumeRevise.getAmountSum();
+                        }else {
+                            String msg = "m1卡公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
+                            log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,mConsumeCountData.getAmountSum());
+                            fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                    msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                    qsTotalAmount,mConsumeCountData.getConsumeAmount()));
+                            //修改
+                            processResultService.update(
+                                    new FileProcessResult(inZipFileName,null, new Date(),
+                                            "6555", "文件金额校验失败"));
+                            return false;
+                        }
+                    }else {
+                        String msg = "m1卡公交消费文件错误文件的笔数与消费文件错误笔数不符";
+                        log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                null,null));
+                        //修改
+                        processResultService.update(
+                                new FileProcessResult(inZipFileName,null, new Date(),
+                                        "6555", "文件笔数校验失败"));
+                        return false;
+                    }
+                }else {
+                    log.info("m1卡非公交消费文件内容校验");
+                    long cpuCwNotes = mCardConsumeNoBusMapper.findCwNotes(date, inZipFileName);
+                    long cwNotes = mCardConsumeNoBusMapper.countCwNotes(date, inZipFileName);
+                    //校验错误笔数
+                    if (cpuCwNotes == cwNotes) {
+                        //校验清算金额
+                        BigDecimal qsTotalAmount = settleAuditMapper.countTotalAmount(date, inZipFileName);
+                        if (qsTotalAmount == null){
+                            qsTotalAmount = new BigDecimal("0");
+                        }
+                        CountData cpuConsumeCountData = mCardConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
+                        if (cpuConsumeCountData == null) {
+                            cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
+                        }
+                        if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
+                            log.info("校验成功。m1卡非公交消费文件统计数据并落库");
+                            CountData mCardConsume = mCardConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
+                            consumeNotes = mCardConsume.getNotesSum();
+                            consumeAmount = mCardConsume.getAmountSum();
+                        }else {
+                            String msg = "m1卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
+                            log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
+                            fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                    msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                    qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
+                            //修改
+                            processResultService.update(
+                                    new FileProcessResult(inZipFileName,null, new Date(),
+                                            "6555", "文件金额校验失败"));
+                            return false;
+                        }
+                    }else {
+                        String msg = "m1卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
+                        log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
+                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
+                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
+                                null,null));
+                        //修改
+                        processResultService.update(
+                                new FileProcessResult(inZipFileName,null, new Date(),
+                                        "6555", "文件笔数校验失败"));
+                        return false;
+                    }
+                }
+            }else if (inZipFileName.startsWith("Ck")){ //cpu卡客服
+                log.info("cpu卡客服文件统计数据并落库");
+                //cpu客服充值
+                CountData cpuInvest = cpuCustomerServiceMapper.countInvestAmountAndNum(date, inZipFileName);
+                CountData cpuConsume = cpuCustomerServiceMapper.countConsumeAmountAndNum(date, inZipFileName);
 
-        if (inZipFileName.startsWith("CX")){    //cpu消费文件
-            if (isBusFile){ //公交
-                log.info("cpu卡公交消费文件内容校验");
-                long cpuCwNotes = cpuConsumeMapper.findCwNotes();
-                long cwNotes = cpuConsumeMapper.countCwNotes();
-                //校验错误笔数
-                if (cpuCwNotes == cwNotes){
-                    //校验清算金额
-                    BigDecimal qsTotalAmount = settleAuditMapper.countTotalAmount();
-                    if (qsTotalAmount == null){
-                        qsTotalAmount = new BigDecimal("0");
-                    }
-                    CountData cpuConsumeCountData = cpuConsumeMapper.countAmountAndNum();
-                    if (cpuConsumeCountData == null){
-                        cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
-                    }
-                    if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0){
-                        log.info("校验成功。cpu卡公交消费文件统计并落库");
-                        consumeNotes = cpuConsumeCountData.getNotesSum();
-                        consumeAmount = cpuConsumeCountData.getAmountSum();
-                        CountData cpuConsumeReviseCountData = cpuConsumeReviseMapper.countAmountAndNum();
-                        reviseNotes = cpuConsumeReviseCountData.getNotesSum();
-                        reviseAmount = cpuConsumeReviseCountData.getAmountSum();
-                    }else {
-                        String msg = "cpu卡公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
-                        log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                                qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
-                        return false;
-                    }
-                }else {
-                    String msg = "cpu卡公交消费文件错误文件的笔数与消费文件错误笔数不符";
-                    log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                            msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                            null,null));
-                    return false;
-                }
-            }else { //cpu卡非公交
-                log.info("cpu卡非公交消费文件内容校验");
-                long cpuCwNotes = cpuConsumeNoBusMapper.findCwNotes();
-                long cwNotes = cpuConsumeNoBusMapper.countCwNotes();
-                //校验错误笔数
-                if (cpuCwNotes == cwNotes) {
-                    //校验清算金额
-                    BigDecimal qsTotalAmount = settleAuditMapper.countTotalAmount();
-                    if (qsTotalAmount == null){
-                        qsTotalAmount = new BigDecimal("0");
-                    }
-                    CountData cpuConsumeCountData = cpuConsumeNoBusMapper.countAmountAndNum();
-                    if (cpuConsumeCountData == null){
-                        cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
-                    }
-                    if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
-                        log.info("校验成功。cpu卡非公交消费文件统计并落库");
-                        consumeNotes = cpuConsumeCountData.getNotesSum();
-                        consumeAmount = cpuConsumeCountData.getAmountSum();
-                    }else {
-                        String msg = "cpu卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
-                        log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                                qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
-                        return false;
-                    }
-                }else {
-                    String msg = "cpu卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
-                    log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                            msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                            null,null));
-                    return false;
-                }
+                investNotes = cpuInvest.getNotesSum();
+                investAmount = cpuInvest.getAmountSum();
+                consumeNotes = cpuConsume.getNotesSum() ;
+                consumeAmount = cpuConsume.getAmountSum();
+            }else if (inZipFileName.startsWith("KF")){ //m1卡客服
+                log.info("m1卡客服文件统计数据并落库");
+                //m1客服充值
+                CountData mCardInvest = mCardCustomerServiceMapper.countInvestAmountAndNum(date, inZipFileName);
+                CountData mCardConsume = mCardCustomerServiceMapper.countConsumeAmountAndNum(date, inZipFileName);
+                investNotes = mCardInvest.getNotesSum();
+                investAmount =mCardInvest.getAmountSum();
+                consumeNotes = mCardConsume.getNotesSum();
+                consumeAmount = mCardConsume.getAmountSum();
             }
-        }else if (inZipFileName.startsWith("XF")){  //m1卡
-            if (isBusFile){
-                log.info("m1卡公交消费文件内容校验");
-                long cpuCwNotes = mCardConsumeMapper.findCwNotes();
-                long cwNotes = mCardConsumeMapper.countCwNotes();
-                //校验错误笔数
-                if (cpuCwNotes == cwNotes) {
-                    //校验清算金额
-                    BigDecimal qsTotalAmount = null;
-                    if (inZipFileName.startsWith("XF268")){
-                        qsTotalAmount = settleAuditMapper.countTotalAmountZ();
-                    }else {
-                        qsTotalAmount = settleAuditMapper.countTotalAmount();
-                    }
-                    if (qsTotalAmount == null){
-                        qsTotalAmount = new BigDecimal("0");
-                    }
-                    CountData cpuConsumeCountData = mCardConsumeMapper.countAmountAndNum();
-                    if (cpuConsumeCountData == null) {
-                        cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
-                    }
-                    if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
-                        log.info("校验成功.m1卡公交消费文件统计数据并落库");
-                        CountData mCardConsume = mCardConsumeMapper.countAmountAndNum();
-                        consumeNotes = mCardConsume.getNotesSum();
-                        consumeAmount = mCardConsume.getAmountSum();
-                        CountData cpuConsumeRevise = mCardConsumeReviseMapper.countAmountAndNum();
-                        reviseNotes = cpuConsumeRevise.getNotesSum();
-                        reviseAmount = cpuConsumeRevise.getAmountSum();
-                    }else {
-                        String msg = "m1卡公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
-                        log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                                qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
-                        return false;
-                    }
-                }else {
-                    String msg = "m1卡公交消费文件错误文件的笔数与消费文件错误笔数不符";
-                    log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                            msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                            null,null));
-                    return false;
-                }
-            }else {
-                log.info("m1卡非公交消费文件内容校验");
-                long cpuCwNotes = mCardConsumeNoBusMapper.findCwNotes();
-                long cwNotes = mCardConsumeNoBusMapper.countCwNotes();
-                //校验错误笔数
-                if (cpuCwNotes == cwNotes) {
-                    //校验清算金额
-                    BigDecimal qsTotalAmount = settleAuditMapper.countTotalAmount();
-                    if (qsTotalAmount == null){
-                        qsTotalAmount = new BigDecimal("0");
-                    }
-                    CountData cpuConsumeCountData = mCardConsumeNoBusMapper.countAmountAndNum();
-                    if (cpuConsumeCountData == null) {
-                        cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
-                    }
-                    if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
-                        log.info("校验成功。m1卡非公交消费文件统计数据并落库");
-                        CountData mCardConsume = mCardConsumeNoBusMapper.countAmountAndNum();
-                        consumeNotes = mCardConsume.getNotesSum();
-                        consumeAmount = mCardConsume.getAmountSum();
-                    }else {
-                        String msg = "m1卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
-                        log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
-                        fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                                msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                                qsTotalAmount,cpuConsumeCountData.getConsumeAmount()));
-                        return false;
-                    }
-                }else {
-                    String msg = "m1卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
-                    log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
-                    fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01","6555",
-                            msg,0L,null,0L,null,cpuCwNotes,cwNotes,
-                            null,null));
-                    return false;
-                }
-            }
-        }else if (inZipFileName.startsWith("Ck")){ //cpu卡客服
-            log.info("cpu卡客服文件统计数据并落库");
-            //cpu客服充值
-            CountData cpuInvest = cpuCustomerServiceMapper.countInvestAmountAndNum();
-            CountData cpuConsume = cpuCustomerServiceMapper.countConsumeAmountAndNum();
-
-            investNotes = cpuInvest.getNotesSum();
-            investAmount = cpuInvest.getAmountSum();
-            consumeNotes = cpuConsume.getNotesSum() ;
-            consumeAmount = cpuConsume.getAmountSum();
-        }else if (inZipFileName.startsWith("KF")){ //m1卡客服
-            log.info("m1卡客服文件统计数据并落库");
-            //m1客服充值
-            CountData mCardInvest = mCardCustomerServiceMapper.countInvestAmountAndNum();
-            CountData mCardConsume = mCardCustomerServiceMapper.countConsumeAmountAndNum();
-            investNotes = mCardInvest.getNotesSum();
-            investAmount =mCardInvest.getAmountSum();
-            consumeNotes = mCardConsume.getNotesSum();
-            consumeAmount = mCardConsume.getAmountSum();
+            processResultService.update(
+                    new FileProcessResult(inZipFileName,new Date(),"0000","处理成功", investNotes,investAmount,
+                            consumeNotes,consumeAmount,reviseNotes,reviseAmount));
+            return true;
+        }catch (Exception e){
+            log.error("统计消费或者客服文件{}的笔数和金额发生异常。",inZipFileName);
+            //修改
+            processResultService.update(
+                    new FileProcessResult(inZipFileName, null, new Date(),
+                            "6555", "统计消费或者客服文件的笔数和金额发生异常"));
+            return false;
         }
-        processResultService.update(
-                new FileProcessResult(inZipFileName,new Date(),"0000","处理成功", investNotes,investAmount,
-                        consumeNotes,consumeAmount,reviseNotes,reviseAmount));
-        return true;
     }
 
-    private void writerConsumeOrCustomerToDm(File dmmj, File dmmx, File dmcj, File dmcx, String date,
+    private boolean writerConsumeOrCustomerToDm(File dmmj, File dmmx, File dmcj, File dmcx, String date,
                                              String inZipFileName, Boolean isBusFile,String zipFileType) {
+        boolean flag = false;
         if ("02".equals(zipFileType)){  //消费
             //从数据库取出写入dm
-            writerTODM(dmmj,dmmx,dmcj,dmcx,date,inZipFileName,isBusFile);
+            flag = writerTODM(dmmj,dmmx,dmcj,dmcx,date,inZipFileName,isBusFile);
         }else if ("03".equals(zipFileType)){ //客服
             //从数据库取出写入dm
-            customerServiceDataProcess.writerTODM(dmmj, dmcj, date, inZipFileName);
+            flag = customerServiceDataProcess.writerTODM(dmmj, dmcj, date, inZipFileName);
         }
+        return flag;
     }
 
 
     /**
      *  把CX或者XF压缩文件中的JY文件和对应的output文件夹的相关的文件（CW,XZ,QS）落库
-     * @param cOutputDateDir input对应的output的文件夹
-     * @param unZipDirName  input解压缩文件文件名字
+     * @param unOutZipFileDir input对应的output的文件夹
+     * @param inZipFileName  input压缩文件名字
      * @param unZipFile 解压后文件
      * @param dbUser
      * @param dbPassword
      * @param odbName
      * @return 全部落库是否成功
      */
-    @Override
-    public boolean batchInsert(File cOutputDateDir, String unZipDirName, File unZipFile, Boolean isBusFile,
+    public boolean batchInsert(String date,File unOutZipFileDir, String inZipFileName, File unZipFile, Boolean isBusFile,
                                File sqlldrDir, String dbUser, String dbPassword, String odbName) {
-        ArrayList<Map<String,Object>> info = new ArrayList<>();
+        List<Map<String, Object>> info = new ArrayList<>();
         //表名
         String tableName = null;
         //表字段
         String fieldNames = null;
         //控制文件
         File contlFile = null;
-        File[] cOutputUnzipFiles = null;
-        File cOutputUnzipDir = null;
-        File oFile = null;
-        for (File file : cOutputDateDir.listFiles()){
-            if (file.getName().startsWith(unZipDirName)){
-                oFile = file;
-                break;
-            }
-        }
-        if (oFile != null) {
-            //解压
-            FileUtil.unZip(oFile);
-            //output对应的文件
-            cOutputUnzipDir = new File(cOutputDateDir, unZipDirName);
-        }else {
-            //如果为空，创建文件夹
-            cOutputUnzipDir = new File(cOutputDateDir, unZipDirName);
-            cOutputUnzipDir.mkdir();
-        }
-        cOutputUnzipFiles = cOutputUnzipDir.listFiles();
-        //没有CW,XZ,QS文件则创建空文件
-        List<String> list = new ArrayList<>();
-        for (File file  : cOutputUnzipFiles){
-            list.add(file.getName().substring(0,2));
-        }
-        if (!list.contains("CW")){
-            File cw = new File(cOutputUnzipDir,"CW.txt");
-            try {
-                cw.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if (!list.contains("XZ")){
-            File xz = new File(cOutputUnzipDir,"XZ.txt");
-            try {
-                xz.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if (!list.contains("QS")){
-            File qs = new File(cOutputUnzipDir,"QS.txt");
-            try {
-                qs.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
         //QS文件落库
-        cOutputUnzipFiles = cOutputUnzipDir.listFiles();
-        for (File cOutputUnzipFile : cOutputUnzipFiles) {
-            if (cOutputUnzipFile.getName().startsWith("QS")) { //错误
+        for (File outputUnzipFile : unOutZipFileDir.listFiles()) {
+            if (outputUnzipFile.getName().startsWith("QS")) { //清算
                 String otable = "T_SETTLE_AUDIT";
-                String ofields = "(ARSN, PID, SPT, SRT, TPC, TRC)";
+                String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                        "       ARSN, PID, SPT, SRT, TPC, TRC)";
                 File ocfile = new File(sqlldrDir, "settleAudit.ctl");
-                toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                toMap(info, otable, ofields, ocfile, outputUnzipFile);
                 break;
             }
         }
-
-        if (unZipDirName.startsWith("CX")) { //CPU卡
+        if (inZipFileName.startsWith("CX")) { //CPU卡
             if (isBusFile) {  //公交
                 tableName = "T_CPU_CONSUME";
-                fieldNames = "(PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON,BDCT,MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC,MEM)";
+                fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                            "PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON,BDCT," +
+                            "MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC,MEM)";
                 //控制文件
                 contlFile = new File(sqlldrDir, "cpuConsume.ctl");
-                for (File cOutputUnzipFile : cOutputUnzipFiles) {
-                    if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
+                for (File outputUnzipFile : unOutZipFileDir.listFiles()) {
+                    if (outputUnzipFile.getName().startsWith("CW")) { //错误
                         String otable = "T_CPU_CONSUME_ERROR";
-                        String ofields = "(PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, LPID, LTIM, AREA, ACT, SAREA, TAC, STATUS)";
+                        String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                            "PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, BDCT, MDCT, " +
+                                            "UDCT, EPID, ETIM, LPID, LTIM, AREA, ACT, SAREA, TAC, STATUS)";
                         File ocfile = new File(sqlldrDir, "cpuConsumeError.ctl");
-                        toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                        toMap(info, otable, ofields, ocfile, outputUnzipFile);
                     }
-                    if (cOutputUnzipFile.getName().startsWith("XZ")) { //修正
+                    if (outputUnzipFile.getName().startsWith("XZ")) { //修正
                         String otable = "T_CPU_CONSUME_REVISE";
-                        String ofields = "(FNAME, PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, LPID, LTIM, AREA, ACT, SAREA, TAC, FLAG, CODE)";
+                        String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                        "FNAME, PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, BDCT, MDCT, " +
+                                        "UDCT, EPID, ETIM, LPID, LTIM, AREA, ACT, SAREA, TAC, FLAG, CODE)";
                         File ocfile = new File(sqlldrDir, "cpuConsumeRevise.ctl");
-                        toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                        toMap(info, otable, ofields, ocfile, outputUnzipFile);
                     }
                 }
             } else { //非公交
                 tableName = "T_CPU_CONSUME_NOBUS";
-                fieldNames = "(PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, EPID, ETIM, LPID, LTIM, TAC)";
+                fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                "PID, PSN, TIM, LCN, FCN, TF, FEE, BAL, TT, ATT, CRN, XRN, DMON, EPID, ETIM, LPID, LTIM, TAC)";
                 //控制文件
                 contlFile = new File(sqlldrDir, "cpuConsumeNoBus.ctl");
-                for (File cOutputUnzipFile : cOutputUnzipFiles) {
-                    if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
+                for (File outputUnzipFile : unOutZipFileDir.listFiles()) {
+                    if (outputUnzipFile.getName().startsWith("CW")) { //错误
                         String otable = "T_CPU_CONSUME_ERROR_NOBUS";
-                        String ofields = "(PID, PSN, TAC, STATUS)";
+                        String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                            "PID, PSN, TAC, STATUS)";
                         File ocfile = new File(sqlldrDir, "cpuConsumeErrorNoBus.ctl");
-                        toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                        toMap(info, otable, ofields, ocfile, outputUnzipFile);
                         break;
                     }
                 }
             }
-        } else if (unZipDirName.startsWith("XF")) { //M1卡
+        } else if (inZipFileName.startsWith("XF")) { //M1卡
             if (isBusFile) {  //公交
                 tableName = "T_MCARD_CONSUME";
-                fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, RN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, AI, VC, TAC)";
+                fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, " +
+                                "RN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, AI, VC, TAC)";
                 //控制文件
                 contlFile = new File(sqlldrDir, "mCardConsume.ctl");
-                for (File cOutputUnzipFile : cOutputUnzipFiles) {
-                    if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
+                for (File outputUnzipFile : unOutZipFileDir.listFiles()) {
+                    if (outputUnzipFile.getName().startsWith("CW")) { //错误
                         String otable = "T_MCARD_CONSUME_ERROR";
-                        String ofields = "(PID, PSN, STATUS)";
+                        String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                            "PID, PSN, STATUS)";
                         File ocfile = new File(sqlldrDir, "mCardConsumeError.ctl");
                         //pid=cw的psn,psn=cw的pid,把它转换回来
-                        if (unZipDirName.startsWith("XF0000") || unZipDirName.startsWith("XF0002")) {
-                            File cw = new File(cOutputUnzipDir, "cw.txt");
-                            convertCw(cOutputUnzipFile, cw);
-                            cOutputUnzipFile = cw;
+                        if (inZipFileName.startsWith("XF0000") || inZipFileName.startsWith("XF0002")) {
+                            File cw = new File(unOutZipFileDir, "cw.txt");
+                            convertCw(outputUnzipFile, cw);
+                            outputUnzipFile = cw;
                         }
-                        if (unZipDirName.startsWith("XF268")) {
+                        if (inZipFileName.startsWith("XF268")) {
                             //特殊文件，CW与JY一致。pid=cw的psn,psn=cw的pid
-                            File cw = new File(cOutputUnzipDir, "cw.txt");
-                            convertToCw(cOutputUnzipFile, cw);
-                            cOutputUnzipFile = cw;
+                            File cw = new File(unOutZipFileDir, "cw.txt");
+                            convertToCw(outputUnzipFile, cw);
+                            outputUnzipFile = cw;
                         }
-                        toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                        toMap(info, otable, ofields, ocfile, outputUnzipFile);
                         continue;
                     }
-                    if (cOutputUnzipFile.getName().startsWith("XZ")) { //修正
+                    if (outputUnzipFile.getName().startsWith("XZ")) { //修正
                         String otable = "T_MCARD_CONSUME_REVISE";
-                        String ofields = "(FNAME, PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, RN, DMON, BDCT, MDCT, UDCT, EPID, ETIM, AI, VC, TAC, FLAG, CODE)";
+                        String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                        "FNAME, PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, FEE, TT, RN, DMON, BDCT," +
+                                        " MDCT, UDCT, EPID, ETIM, AI, VC, TAC, FLAG, CODE)";
                         File ocfile = new File(sqlldrDir, "mCardConsumeRevise.ctl");
-                        toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                        toMap(info, otable, ofields, ocfile, outputUnzipFile);
                     }
                 }
             } else { //非公交
                 tableName = "T_MCARD_CONSUME_NOBUS";
                 //XF80480001的JY多个8位余额
-                if (unZipDirName.startsWith("XF80480001")) {
-                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                if (inZipFileName.startsWith("XF80480001")) {
+                    fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                    "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
                 } else {
-                    fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00',TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                    fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                    "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00',TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
                 }
                 //控制文件
                 contlFile = new File(sqlldrDir, "mCardConsumeNoBus.ctl");
-                for (File cOutputUnzipFile : cOutputUnzipFiles) {
-                    if (cOutputUnzipFile.getName().startsWith("CW")) { //错误
+                for (File outputUnzipFile : unOutZipFileDir.listFiles()) {
+                    if (outputUnzipFile.getName().startsWith("CW")) { //错误
                         String otable = "T_MCARD_CONSUME_ERROR_NOBUS";
-                        String ofields = "(PSN, PID, STATUS)";
+                        String ofields = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                                            "PSN, PID, STATUS)";
                         File ocfile = new File(sqlldrDir, "mCardConsumeErrorNoBus.ctl");
-                        toMap(info, otable, ofields, ocfile, cOutputUnzipFile);
+                        toMap(info, otable, ofields, ocfile, outputUnzipFile);
                         break;
                     }
                 }
@@ -581,11 +652,13 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     (File) map.get("contlFile"), (File) map.get("dataFile"));
             if (!f) {
                 log.error("落库失败，文件是{}", ((File) map.get("dataFile")).getAbsolutePath());
-                FileUtil.deleteFile(cOutputUnzipDir);
+                //修改
+                processResultService.update(
+                        new FileProcessResult(inZipFileName, ((File) map.get("dataFile")).getAbsolutePath(), new Date(),
+                                "6555", "落库失败"));
                 return false;
             }
         }
-        FileUtil.deleteFile(cOutputUnzipDir);
         return true;
 
     }
@@ -653,134 +726,144 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
      * @param isBusFile     是否是公交文件
      */
     @Override
-    public void writerTODM(File dmmj, File dmmx, File dmcj, File dmcx,
+    public boolean writerTODM(File dmmj, File dmmx, File dmcj, File dmcx,
                                     String settleDate, String zipFileName, Boolean isBusFile) {
-        log.info("从数据库取消费数据写到对应的dm文件");
-        if (zipFileName.startsWith("CX")){ //cpu卡
-            ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
-            if (isBusFile){ //公交
-                //获取总笔数
-                long allNotes = cpuConsumeMapper.findAllNotes();
-                if (allNotes > 0L) {
-                    long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
-                    while (allNotes > 0L) {
-                        if (allNotes <= pageSize) {
-                            pageSize = allNotes;
+        try {
+            log.info("从数据库取消费数据写到对应的dm文件");
+            if (zipFileName.startsWith("CX")){ //cpu卡
+                ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
+                if (isBusFile){ //公交
+                    //获取总笔数
+                    long allNotes = cpuConsumeMapper.findAllNotes(settleDate,zipFileName);
+                    if (allNotes > 0L) {
+                        long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
+                        while (allNotes > 0L) {
+                            if (allNotes <= pageSize) {
+                                pageSize = allNotes;
+                            }
+                            endNum = startNum + pageSize;
+                            log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
+                            List<CpuConsume> cpuConsumeList = cpuConsumeMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
+                            for (CpuConsume cpuConsume : cpuConsumeList){
+                                CpuTrade cpuTrade = new CpuTrade();
+                                convertToCpuTrade(cpuConsume,cpuTrade,settleDate,zipFileName);
+                                cpuTradeList.add(cpuTrade);
+                            }
+                            FileUtil.writeToFile(dmcj,cpuTradeList);
+                            cpuTradeList.clear();
+                            allNotes -= pageSize;
+                            startNum += pageSize;
+                            count++;
                         }
-                        endNum = startNum + pageSize;
-                        log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
-                        List<CpuConsume> cpuConsumeList = cpuConsumeMapper.findByWhere(startNum,endNum);
-                        for (CpuConsume cpuConsume : cpuConsumeList){
-                            CpuTrade cpuTrade = new CpuTrade();
-                            convertToCpuTrade(cpuConsume,cpuTrade,settleDate,zipFileName);
-                            cpuTradeList.add(cpuTrade);
+                    }
+                    //修正
+                    List<CpuConsumeRevise> list = cpuConsumeReviseMapper.findList(settleDate,zipFileName);
+                    if (list.size() > 0){
+                        ArrayList<CpuTradeRevise> cpuTradeReviseList = new ArrayList<>();
+                        for (CpuConsumeRevise cpuConsumeRevise : list){
+                            CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
+                            convertToCpuTradeRevise(cpuConsumeRevise,cpuTradeRevise,settleDate,zipFileName);
+                            cpuTradeReviseList.add(cpuTradeRevise);
                         }
-                        FileUtil.writeToFile(dmcj,cpuTradeList);
-                        cpuTradeList.clear();
-                        allNotes -= pageSize;
-                        startNum += pageSize;
-                        count++;
+                        FileUtil.writeToFile(dmcx,cpuTradeReviseList);
+                    }
+                }else {
+                    //获取总笔数
+                    long allNotes = cpuConsumeNoBusMapper.findAllNotes(settleDate,zipFileName);
+                    if (allNotes > 0L) {
+                        long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
+                        while (allNotes > 0L) {
+                            if (allNotes <= pageSize) {
+                                pageSize = allNotes;
+                            }
+                            endNum = startNum + pageSize;
+                            log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
+                            List<CpuConsumeNoBus> cpuConsumeNoBusList = cpuConsumeNoBusMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
+                            for (CpuConsumeNoBus cpuConsumeNoBus : cpuConsumeNoBusList){
+                                CpuTrade cpuTrade = new CpuTrade();
+                                convertToCpuTrade(cpuConsumeNoBus,cpuTrade,settleDate,zipFileName);
+                                cpuTradeList.add(cpuTrade);
+                            }
+                            FileUtil.writeToFile(dmcj,cpuTradeList);
+                            cpuTradeList.clear();
+                            allNotes -= pageSize;
+                            startNum += pageSize;
+                            count++;
+                        }
                     }
                 }
-                //修正
-                List<CpuConsumeRevise> list = cpuConsumeReviseMapper.findList();
-                if (list.size() > 0){
-                    ArrayList<CpuTradeRevise> cpuTradeReviseList = new ArrayList<>();
-                    for (CpuConsumeRevise cpuConsumeRevise : list){
-                        CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
-                        convertToCpuTradeRevise(cpuConsumeRevise,cpuTradeRevise,settleDate,zipFileName);
-                        cpuTradeReviseList.add(cpuTradeRevise);
+            }else { //M1卡
+                ArrayList<MCardTrade> mCardTradeList = new ArrayList<>();
+                if (isBusFile){ //公交
+                    //获取总笔数
+                    long allNotes = mCardConsumeMapper.findAllNotes(settleDate,zipFileName);
+                    if (allNotes > 0L){
+                        long pageSize = 100000L,startNum = 0L,endNum,count = 1L;
+                        while (allNotes > 0L){
+                            if (allNotes <= pageSize){
+                                pageSize = allNotes;
+                            }
+                            endNum = startNum + pageSize;
+                            log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}",count,allNotes,pageSize,startNum,endNum);
+                            List<MCardConsume> mCardConsumeList = mCardConsumeMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
+                            for (MCardConsume mCardConsume : mCardConsumeList){
+                                MCardTrade mCardTrade = new MCardTrade();
+                                convertToMCardTrade(mCardConsume,mCardTrade,settleDate,zipFileName);
+                                mCardTradeList.add(mCardTrade);
+                            }
+                            FileUtil.writeToFile(dmmj,mCardTradeList);
+                            mCardTradeList.clear();
+                            allNotes -= pageSize;
+                            startNum += pageSize;
+                            count++;
+                        }
                     }
-                    FileUtil.writeToFile(dmcx,cpuTradeReviseList);
-                }
-            }else {
-                //获取总笔数
-                long allNotes = cpuConsumeNoBusMapper.findAllNotes();
-                if (allNotes > 0L) {
-                    long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
-                    while (allNotes > 0L) {
-                        if (allNotes <= pageSize) {
-                            pageSize = allNotes;
-                        }
-                        endNum = startNum + pageSize;
-                        log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
-                        List<CpuConsumeNoBus> cpuConsumeNoBusList = cpuConsumeNoBusMapper.findByWhere(startNum,endNum);
-                        for (CpuConsumeNoBus cpuConsumeNoBus : cpuConsumeNoBusList){
-                            CpuTrade cpuTrade = new CpuTrade();
-                            convertToCpuTrade(cpuConsumeNoBus,cpuTrade,settleDate,zipFileName);
-                            cpuTradeList.add(cpuTrade);
-                        }
-                        FileUtil.writeToFile(dmcj,cpuTradeList);
-                        cpuTradeList.clear();
-                        allNotes -= pageSize;
-                        startNum += pageSize;
-                        count++;
-                    }
-                }
-            }
-        }else { //M1卡
-            ArrayList<MCardTrade> mCardTradeList = new ArrayList<>();
-            if (isBusFile){ //公交
-                //获取总笔数
-                long allNotes = mCardConsumeMapper.findAllNotes();
-                if (allNotes > 0L){
-                    long pageSize = 100000L,startNum = 0L,endNum,count = 1L;
-                    while (allNotes > 0L){
-                        if (allNotes <= pageSize){
-                            pageSize = allNotes;
-                        }
-                        endNum = startNum + pageSize;
-                        log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}",count,allNotes,pageSize,startNum,endNum);
-                        List<MCardConsume> mCardConsumeList = mCardConsumeMapper.findByWhere(startNum,endNum);
-                        for (MCardConsume mCardConsume : mCardConsumeList){
-                            MCardTrade mCardTrade = new MCardTrade();
-                            convertToMCardTrade(mCardConsume,mCardTrade,settleDate,zipFileName);
-                            mCardTradeList.add(mCardTrade);
-                        }
-                        FileUtil.writeToFile(dmmj,mCardTradeList);
-                        mCardTradeList.clear();
-                        allNotes -= pageSize;
-                        startNum += pageSize;
-                        count++;
-                    }
-                }
 
-                //修正
-                List<MCardConsumeRevise> reviseList = mCardConsumeReviseMapper.findList();
-                if (reviseList.size() > 0){
-                    ArrayList<MCardTradeRevise> mCardTradeReviseList = new ArrayList<>();
-                    for (MCardConsumeRevise mCardConsumeRevise : reviseList){
-                        MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
-                        convertToMCardTradeRevise(mCardConsumeRevise,mCardTradeRevise,settleDate,zipFileName);
-                        mCardTradeReviseList.add(mCardTradeRevise);
+                    //修正
+                    List<MCardConsumeRevise> reviseList = mCardConsumeReviseMapper.findList(settleDate,zipFileName);
+                    if (reviseList.size() > 0){
+                        ArrayList<MCardTradeRevise> mCardTradeReviseList = new ArrayList<>();
+                        for (MCardConsumeRevise mCardConsumeRevise : reviseList){
+                            MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
+                            convertToMCardTradeRevise(mCardConsumeRevise,mCardTradeRevise,settleDate,zipFileName);
+                            mCardTradeReviseList.add(mCardTradeRevise);
+                        }
+                        FileUtil.writeToFile(dmmx,mCardTradeReviseList);
                     }
-                    FileUtil.writeToFile(dmmx,mCardTradeReviseList);
-                }
-            }else { //非公交
-                //获取总笔数
-                long allNotes = mCardConsumeNoBusMapper.findAllNotes();
-                if (allNotes > 0L) {
-                    long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
-                    while (allNotes > 0L) {
-                        if (allNotes <= pageSize) {
-                            pageSize = allNotes;
+                }else { //非公交
+                    //获取总笔数
+                    long allNotes = mCardConsumeNoBusMapper.findAllNotes(settleDate,zipFileName);
+                    if (allNotes > 0L) {
+                        long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
+                        while (allNotes > 0L) {
+                            if (allNotes <= pageSize) {
+                                pageSize = allNotes;
+                            }
+                            endNum = startNum + pageSize;
+                            log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
+                            List<MCardConsumeNoBus> list = mCardConsumeNoBusMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
+                            for (MCardConsumeNoBus mCardConsumeNoBus : list){
+                                MCardTrade mCardTrade = new MCardTrade();
+                                convertToMCardTrade(mCardConsumeNoBus,mCardTrade,settleDate,zipFileName);
+                                mCardTradeList.add(mCardTrade);
+                            }
+                            FileUtil.writeToFile(dmmj,mCardTradeList);
+                            mCardTradeList.clear();
+                            allNotes -= pageSize;
+                            startNum += pageSize;
+                            count++;
                         }
-                        endNum = startNum + pageSize;
-                        log.info("第{}次循环，allNotes={},pageSize={},startNum={},endNum={}", count, allNotes, pageSize, startNum, endNum);
-                        List<MCardConsumeNoBus> list = mCardConsumeNoBusMapper.findByWhere(startNum,endNum);
-                        for (MCardConsumeNoBus mCardConsumeNoBus : list){
-                            MCardTrade mCardTrade = new MCardTrade();
-                            convertToMCardTrade(mCardConsumeNoBus,mCardTrade,settleDate,zipFileName);
-                            mCardTradeList.add(mCardTrade);
-                        }
-                        FileUtil.writeToFile(dmmj,mCardTradeList);
-                        mCardTradeList.clear();
-                        allNotes -= pageSize;
-                        startNum += pageSize;
-                        count++;
                     }
                 }
             }
+            return true;
+        }catch (Exception e){
+            log.error("把消费文件{}写到dm文件发生异常:{}。",zipFileName,e);
+            //修改
+            processResultService.update(
+                    new FileProcessResult(zipFileName, null, new Date(),
+                            "6555", "把消费文件写到dm文件发生异常"));
+            return false;
         }
     }
 

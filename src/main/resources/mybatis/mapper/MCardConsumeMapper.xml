@@ -3,7 +3,7 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yct.settle.mapper.MCardConsumeMapper">
-    <select id="findByWhere" parameterType="long" resultType="com.yct.settle.pojo.MCardConsume">
+    <select id="findByWhere" resultType="com.yct.settle.pojo.MCardConsume">
        SELECT
         PSN, LCN, FCN,
         LPID, LTIM, PID, TIM,
@@ -21,6 +21,8 @@
               SELECT 1
                 FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
             ) AND <![CDATA[rownum <= #{endNum}]]>
+              and SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
         ) WHERE <![CDATA[r > #{startNum}]]>
 
     </select>
@@ -31,7 +33,8 @@
         WHERE NOT EXISTS (
           SELECT 1
             FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-        )
+        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+          and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="findAllNotes" resultType="long">
@@ -39,19 +42,21 @@
         WHERE NOT EXISTS (
               SELECT 1
                 FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-            )
+            ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="findCwNotes" resultType="long">
-        SELECT count(1) from T_MCARD_CONSUME t1
-        WHERE EXISTS (
-              SELECT 1
-                FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-            )
+        SELECT count(1) from
+        (
+          SELECT PID,PSN FROM T_MCARD_CONSUME WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+          INTERSECT
+          SELECT PID,PSN FROM T_MCARD_CONSUME_ERROR WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+        )
     </select>
 
     <select id="countCwNotes" resultType="long">
         SELECT count(1) FROM T_MCARD_CONSUME_ERROR
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

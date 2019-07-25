@@ -12,6 +12,6 @@ public interface CustomerServiceDataProcess {
     boolean batchInsert(String unZipDirName, File unZipFile, File sqlldrDir,
                                 String dbUser, String dbPassword, String odbName);
 
-    void writerTODM(File dmmj, File dmcj, String settleDate, String inZipFileName);
+    boolean writerTODM(File dmmj, File dmcj, String settleDate, String inZipFileName);
 
 }

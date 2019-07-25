@@ -128,6 +128,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
             log.error("处理充值文件{}发生异常：{},修改标志，通知其他线程", fileName, e);
             //修改
             processResultService.update(new FileProcessResult(fileName, null, new Date(), "6555", "处理充值文件发生异常"));
+            return;
         }
     }
 
@@ -146,11 +147,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         File unOutZipFileDir = null;  //output解压后的文件夹
         File unInZipFileDir = null;  //input解压后的文件夹
         try {
-            //已经解压过的文件夹删除
-            if (outZipFile.getName().indexOf(".") != -1) {
+            //处理已经解压过的文件夹
+            if (outZipFile.getName().indexOf(".") == -1) {
                 unOutZipFileDir = new File(outZipFile.getParent(), outZipFile.getName().substring(0, outZipFile.getName().indexOf(".")));
                 if (unOutZipFileDir.exists()) {
-                    FileUtil.deleteFile(unOutZipFileDir);
+                    FileUtil.zipV2(outZipFile.getAbsolutePath(),unOutZipFileDir.getAbsolutePath());
                 }
             }
             if (FileUtil.unZip(outZipFile)) {   //output压缩文件解压
@@ -162,11 +163,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 for (File inZipFile : inputDateDir.listFiles()) {
                     if (inZipFile.getName().startsWith(unOutZipFileDir.getName())) {
                         tempFile = inZipFile;
-                        //已经解压过的文件夹删除
-                        if (inZipFile.getName().indexOf(".") != -1) {
+                        //处理已经解压过的文件夹
+                        if (inZipFile.getName().indexOf(".") == -1) {
                             unInZipFileDir = new File(inputDateDir, inZipFile.getName().substring(0, inZipFile.getName().indexOf(".")));
                             if (unInZipFileDir.exists()) {
-                                FileUtil.deleteFile(unInZipFileDir);
+                                FileUtil.zipV2(inZipFile.getAbsolutePath(),unInZipFileDir.getAbsolutePath());
                             }
                         }
                         //解压input文件
@@ -181,7 +182,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             }
                             break;
                         } else {
-                            threadTaskHandle.setIsError(true);
                             log.error("解压input文件{}失败,修改标志，通知其他线程", outZipFile.getAbsolutePath());
                             //删除解压的文件夹
                             FileUtil.deleteFile(unOutZipFileDir);
@@ -194,15 +194,25 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         }
                     }
                 }
-                if (tempFile == null) { //input下没有一样的压缩文件
-                    //检查output的JY是否为空
-                    File jy = null;
-                    for (File unOutZipFile : unOutZipFileDir.listFiles()) {
-                        if (unOutZipFile.getName().startsWith("JY")) {
-                            jy = unOutZipFile;
-                        }
+
+                //检查output的JY是否为空
+                File jy = null;
+                for (File unOutZipFile : unOutZipFileDir.listFiles()) {
+                    if (unOutZipFile.getName().startsWith("JY") && unOutZipFile.length() > 0) {
+                        jy = unOutZipFile;
                     }
-                    if (jy != null && jy.length() > 0) {
+                }
+                if (jy == null){
+                    log.info("output的{}的JY文件没有数据，无需处理。",outZipFile.getAbsolutePath());
+                    FileUtil.deleteFile(unOutZipFileDir);
+                    FileUtil.deleteFile(unInZipFileDir);
+                    //修改
+                    processResultService.update(
+                            new FileProcessResult(outZipFile.getName(), null, new Date(),
+                                    "0000", "output的压缩文件里的JY文件没有数据，无需处理。"));
+                    return true;
+                }else {
+                    if (tempFile == null) { //input下没有一样的压缩文件
                         log.error("output的{}的JY文件有数据，input下没有对应的文件",outZipFile.getAbsolutePath());
                         FileUtil.deleteFile(unOutZipFileDir);
                         FileUtil.deleteFile(unInZipFileDir);
@@ -211,39 +221,31 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                 new FileProcessResult(outZipFile.getName(), null, new Date(),
                                         "6555", "output的充值文件有交易数据，input下没有对应的文件"));
                         return false;
-                    }else {
-                        log.info("output的{}的JY文件没有数据，无需处理。",outZipFile.getAbsolutePath());
+                    }
+                    if (targetFile == null){
+                        log.error("{}这个文件里没有JY文件", tempFile.getAbsolutePath());
                         FileUtil.deleteFile(unOutZipFileDir);
                         FileUtil.deleteFile(unInZipFileDir);
                         //修改
                         processResultService.update(
                                 new FileProcessResult(outZipFile.getName(), null, new Date(),
-                                        "0000", "output的{}的JY文件没有数据，无需处理。"));
-                        return true;
+                                        "6555", "input压缩文件里没有JY文件"));
+                        return false;
                     }
                 }
-                if (targetFile != null) {
-                    //落库，校验
-                    for (File unOutZipFile : unOutZipFileDir.listFiles()) {
+                //落库，校验
+                for (File unOutZipFile : unOutZipFileDir.listFiles()) {
+                    if (!(unOutZipFile.getName().startsWith("MD") || unOutZipFile.getName().startsWith("QS") ||
+                            unOutZipFile.getName().startsWith("RZ"))){
                         boolean insertFlag = batchInsert(date, unOutZipFile, outZipFile.getName(), dbUser,
-                                                                                        dbPassword, odbName, sqlldrDir, targetFile);
+                                dbPassword, odbName, sqlldrDir, targetFile);
                         if (!insertFlag) {
                             return false;
                         }
                     }
-                    return true;
-                }else {
-                    log.error("{}这个文件里没有JY文件", tempFile.getAbsolutePath());
-                    FileUtil.deleteFile(unOutZipFileDir);
-                    FileUtil.deleteFile(unInZipFileDir);
-                    //修改
-                    processResultService.update(
-                            new FileProcessResult(outZipFile.getName(), null, new Date(),
-                                    "6555", "input下没有与output对应的压缩文件或者这个压缩文件里没有JY文件"));
-                    return false;
                 }
+                return true;
             }else {
-                threadTaskHandle.setIsError(true);
                 log.error("解压output文件{}失败,修改标志，通知其他线程", outZipFile.getAbsolutePath());
                 //删除解压的文件夹
                 FileUtil.deleteFile(unOutZipFileDir);
@@ -254,7 +256,6 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 return false;
             }
         }catch (Exception e){
-            threadTaskHandle.setIsError(true);
             log.error("处理文件{}发生异常,修改标志，通知其他线程", outZipFile.getAbsolutePath());
             //删除解压的文件夹
             FileUtil.deleteFile(unOutZipFileDir);

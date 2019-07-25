@@ -23,6 +23,8 @@
               SELECT 1
                  FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN
             ) AND <![CDATA[rownum <= #{endNum}]]>
+              AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
         ) WHERE <![CDATA[r > #{startNum}]]>
 
     </select>
@@ -33,7 +35,8 @@
         WHERE NOT EXISTS (
           SELECT 1
              FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN
-        )
+        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+          AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="findAllNotes" resultType="long">
@@ -41,19 +44,22 @@
         WHERE NOT EXISTS (
         SELECT 1
         FROM T_CPU_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-        )
+        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+          AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
     <select id="findCwNotes" resultType="long">
-        SELECT count(1) from T_CPU_CONSUME t1
-        WHERE EXISTS (
-        SELECT 1
-        FROM T_CPU_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
+        SELECT count(1) from
+        (
+          SELECT PID,PSN FROM T_CPU_CONSUME WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+          INTERSECT
+          SELECT PID,PSN FROM T_CPU_CONSUME_ERROR WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
         )
     </select>
 
     <select id="countCwNotes" resultType="long">
         SELECT count(1) FROM T_CPU_CONSUME_ERROR
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
 </mapper>

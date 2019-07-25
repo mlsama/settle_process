@@ -2,19 +2,20 @@ package com.yct.settle.service.impl;
 
 import com.yct.settle.mapper.CpuCustomerServiceMapper;
 import com.yct.settle.mapper.MCardCustomerServiceMapper;
-import com.yct.settle.pojo.CpuCustomerService;
-import com.yct.settle.pojo.CpuTrade;
-import com.yct.settle.pojo.MCardCustomerService;
-import com.yct.settle.pojo.MCardTrade;
+import com.yct.settle.pojo.*;
 import com.yct.settle.service.CustomerServiceDataProcess;
+import com.yct.settle.service.ProcessResultService;
 import com.yct.settle.utils.FileUtil;
 import com.yct.settle.utils.SqlLdrUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -24,12 +25,13 @@ import java.util.List;
  */
 @Service
 public class CustomerServiceDataProcessImpl implements CustomerServiceDataProcess {
-
+    private final Logger log = LoggerFactory.getLogger(CustomerServiceDataProcessImpl.class);
     @Resource
     private CpuCustomerServiceMapper cpuCustomerServiceMapper;
-
     @Resource
     private MCardCustomerServiceMapper mCardCustomerServiceMapper;
+    @Resource
+    private ProcessResultService processResultService;
 
     /**
      * 客服数据包的JY文件数据落库
@@ -66,25 +68,35 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
 
 
     @Override
-    public void writerTODM(File dmmj, File dmcj, String settleDate, String zipFileName) {
-        if (zipFileName.startsWith("CK")) { //cpu卡
-            ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
-            List<CpuCustomerService> customerServiceList = cpuCustomerServiceMapper.findList();
-            for (CpuCustomerService cpuCustomerService : customerServiceList){
-                CpuTrade cpuTrade = new CpuTrade();
-                convertToCpuTrade(cpuCustomerService,cpuTrade,settleDate,zipFileName);
-                cpuTradeList.add(cpuTrade);
+    public boolean writerTODM(File dmmj, File dmcj, String settleDate, String zipFileName) {
+        try {
+            if (zipFileName.startsWith("CK")) { //cpu卡
+                ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
+                List<CpuCustomerService> customerServiceList = cpuCustomerServiceMapper.findList(settleDate,zipFileName);
+                for (CpuCustomerService cpuCustomerService : customerServiceList){
+                    CpuTrade cpuTrade = new CpuTrade();
+                    convertToCpuTrade(cpuCustomerService,cpuTrade,settleDate,zipFileName);
+                    cpuTradeList.add(cpuTrade);
+                }
+                FileUtil.writeToFile(dmcj,cpuTradeList);
+            }else { //m1卡
+                ArrayList<MCardTrade> mCardTradeList = new ArrayList<>();
+                List<MCardCustomerService> list = mCardCustomerServiceMapper.findList(settleDate,zipFileName);
+                for (MCardCustomerService mCardCustomerService : list){
+                    MCardTrade mCardTrade = new MCardTrade();
+                    convertToMCardTrade(mCardCustomerService,mCardTrade,settleDate,zipFileName);
+                    mCardTradeList.add(mCardTrade);
+                }
+                FileUtil.writeToFile(dmmj,mCardTradeList);
             }
-            FileUtil.writeToFile(dmcj,cpuTradeList);
-        }else { //m1卡
-            ArrayList<MCardTrade> mCardTradeList = new ArrayList<>();
-            List<MCardCustomerService> list = mCardCustomerServiceMapper.findList();
-            for (MCardCustomerService mCardCustomerService : list){
-                MCardTrade mCardTrade = new MCardTrade();
-                convertToMCardTrade(mCardCustomerService,mCardTrade,settleDate,zipFileName);
-                mCardTradeList.add(mCardTrade);
-            }
-            FileUtil.writeToFile(dmmj,mCardTradeList);
+            return true;
+        }catch (Exception e){
+            log.error("把客服文件{}写到dm文件发生异常:{}。",zipFileName,e);
+            //修改
+            processResultService.update(
+                    new FileProcessResult(zipFileName, null, new Date(),
+                            "6555", "把客服文件写到dm文件发生异常"));
+            return false;
         }
     }
 
