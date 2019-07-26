@@ -37,4 +37,11 @@ public class FileUtilTest {
         }
     }
 
+    @Test
+    public void zipUnzipTest(){
+        File file = FileUtil.zipUnZipFile(new File("E:\\sqlldrTest\\CZ2002000120120609"));
+        System.out.println(file.getAbsolutePath());
+    }
+
+
 }

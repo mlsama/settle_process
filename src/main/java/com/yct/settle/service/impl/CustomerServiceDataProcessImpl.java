@@ -35,7 +35,7 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
 
     /**
      * 客服数据包的JY文件数据落库
-     * @param unZipDirName  input压缩文件解压后的文件夹名字
+     * @param inZipFileName  input压缩文件名字
      * @param unZipFile 解压后文件
      * @param sqlldrDir
      * @param dbUser
@@ -44,7 +44,7 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
      * @return 全部落库是否成功
      */
     @Override
-    public boolean batchInsert(String unZipDirName, File unZipFile, File sqlldrDir,
+    public boolean batchInsert(String date,String inZipFileName, File unZipFile, File sqlldrDir,
                                     String dbUser, String dbPassword, String odbName) {
         //表名
         String tableName;
@@ -52,18 +52,30 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
         String fieldNames;
         //控制文件
         File contlFile;
-        if (unZipDirName.startsWith("CK")){
+        if (inZipFileName.startsWith("CK")){
             tableName = "T_CPU_CUSTOMER_SERVICE";
-            fieldNames = "(PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON,BDCT,MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC)";
+            fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                    "PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON," +
+                    "BDCT,MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC)";
             //控制文件
             contlFile = new File(sqlldrDir,"cpuCustomerService.ctl");
         }else { //KF
             tableName = "T_MCARD_CUSTOMER_SERVICE";
-            fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, TT, RN, EPID, ETIM, AI, VC, TAC)";
+            fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
+                    "PSN, LCN, FCN, LPID, LTIM, PID, " +
+                    "TIM, TF, BAL, TT, RN, EPID, ETIM, AI, VC, TAC)";
             //控制文件
             contlFile = new File(sqlldrDir,"mCardCustomerService.ctl");
         }
-       return SqlLdrUtil.insertBySqlLdr(dbUser, dbPassword, odbName, tableName, fieldNames, contlFile, unZipFile);
+       boolean f = SqlLdrUtil.insertBySqlLdr(dbUser, dbPassword, odbName, tableName, fieldNames, contlFile, unZipFile);
+        if (!f) {
+            log.error("落库失败，文件是{}", unZipFile.getAbsolutePath());
+            //修改
+            processResultService.update(
+                    new FileProcessResult(inZipFileName, unZipFile.getAbsolutePath(), new Date(),
+                            "6555", "落库失败"));
+        }
+        return f;
     }
 
 

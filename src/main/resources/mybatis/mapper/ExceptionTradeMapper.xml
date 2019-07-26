@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.ExceptionTradeMapper">
+
+    <insert id="insert">
+        insert into T_EXCEPTION_TRADE
+          select
+              t1.SETTLE_DATE,
+              t1.ZIP_FILE_NAME,
+              t1.PID,
+              t1.PSN,
+              t1.TIM,
+              t1.LCN,
+              t1.FCN,
+              t1.TF,
+              t1.FEE,
+              t1.BAL,
+              t1.TT,
+              t1.TAC
+          from T_MCARD_CONSUME_NOBUS t1,
+          (
+            select PID,PSN from
+              (
+                select PID,PSN,count(1) c from T_MCARD_CONSUME_NOBUS
+                WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR} group by PID,PSN
+              ) where c > 1
+            intersect
+            select PID,PSN from T_MCARD_CONSUME_ERROR_NOBUS where SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+          ) t2 where t1.PID=t2.PID
+                      and t1.PSN=t2.PSN
+                      and t1.SETTLE_DATE=#{date,jdbcType=VARCHAR}
+                      and t1.ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+    </insert>
+
+
+</mapper>

@@ -207,6 +207,7 @@
         DELETE FROM T_FILE_PROCESS_RESULT
           WHERE SETTLE_DATE = #{date,jdbcType=VARCHAR}
           and ZIP_FILE_NAME = #{zipFileName,jdbcType=VARCHAR}
+          and RESULT_CODE = '0000'
     </delete>
 
 

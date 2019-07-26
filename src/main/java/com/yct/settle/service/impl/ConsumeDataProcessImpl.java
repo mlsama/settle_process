@@ -51,6 +51,8 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
     private SettleAuditMapper settleAuditMapper;
     @Resource
     private FileCheckErrorMapper fileCheckErrorMapper;
+    @Resource
+    private ExceptionTradeMapper exceptionTradeMapper;
 
 
 
@@ -123,6 +125,10 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             threadTaskHandle.setIsError(true);
                             return ;
                         }
+                        if ("yes".equals(resultMap.get("consumeJyIsNull"))){
+                            continue;
+                        }
+
                         //对消费进行文件内容校验,并把这个消费文件的统计数据存到数据库
                         String type = resultMap.get("isBusFile");
                         boolean isBusFile = false;
@@ -174,12 +180,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         boolean isBusFile = false;    //是否是公交文件
         try {
             //处理已经解压过的文件夹
-            if (inZipFile.getName().indexOf(".") == -1) {
-                unInZipFileDir = new File(inZipFile.getParent(), inZipFile.getName().substring(0, inZipFile.getName().indexOf(".")));
-                if (unInZipFileDir.exists()) {
-                    FileUtil.zipV2(inZipFile.getAbsolutePath(),unInZipFileDir.getAbsolutePath());
-                }
-            }
+            inZipFile = FileUtil.zipUnZipFile(inZipFile);
             //解压input文件
             if (FileUtil.unZip(inZipFile)){
                 //进入解压后的文件夹
@@ -202,11 +203,14 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 }
                 if (tempFile != null){
                     boolean insertFlag = false;
+                    resultMap.put("consumeJyIsNull","no");
                     if ("02".equals(zipFileType)){  //消费
                         //获取output对应的文件夹
                         File outputDateDir = new File(outputDataFolder + File.separator + date);
                         for (File outputZipFile : outputDateDir.listFiles()){
                             if (outputZipFile.getName().startsWith(unInZipFileDir.getName())){
+                                //处理已经解压过的文件夹
+                                outputZipFile = FileUtil.zipUnZipFile(outputZipFile);
                                 //解压
                                 if (FileUtil.unZip(outputZipFile)){
                                     unOutZipFileDir = new File(outputDateDir,outputZipFile.getName().substring(0,outputZipFile.getName().indexOf(".")));
@@ -227,7 +231,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         insertFlag = batchInsert(date,unOutZipFileDir, inZipFile.getName(), tempFile, isBusFile, sqlldrDir,
                                                         dbUser,dbPassword,odbName);
                     }else  if ("03".equals(zipFileType)) { //客服
-                        insertFlag = customerServiceDataProcess.batchInsert(unInZipDirName, tempFile, sqlldrDir,
+                        insertFlag = customerServiceDataProcess.batchInsert(date,inZipFile.getName(), tempFile, sqlldrDir,
                                                                                             dbUser,dbPassword,odbName);
                     }
                     FileUtil.deleteFile(unInZipFileDir);
@@ -235,6 +239,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     return insertFlag;
                 }else {
                     log.error("{}没有JY文件,无需处理。",inZipFile.getAbsolutePath());
+                    resultMap.put("consumeJyIsNull","yes");
                     FileUtil.deleteFile(unInZipFileDir);
                     FileUtil.deleteFile(unOutZipFileDir);
                     //修改
@@ -274,7 +279,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         long reviseNotes = 0L;
         BigDecimal reviseAmount = new BigDecimal("0");
         try {
-            if (inZipFileName.startsWith("CX")){    //cpu消费文件
+            if (inZipFileName.startsWith("CX")) {  //cpu消费文件
                 if (isBusFile){ //公交
                     log.info("cpu卡公交消费文件内容校验");
                     long cpuCwNotes = cpuConsumeMapper.findCwNotes(date,inZipFileName);
@@ -287,7 +292,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             qsTotalAmount = new BigDecimal("0");
                         }
                         CountData cpuConsumeCountData = cpuConsumeMapper.countAmountAndNum(date,inZipFileName);
-                        if (cpuConsumeCountData == null){
+                        if (cpuConsumeCountData != null && cpuConsumeCountData.getAmountSum() == null){
                             cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
                         }
                         if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0){
@@ -333,7 +338,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             qsTotalAmount = new BigDecimal("0");
                         }
                         CountData cpuConsumeCountData = cpuConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
-                        if (cpuConsumeCountData == null){
+                        if (cpuConsumeCountData != null && cpuConsumeCountData.getAmountSum() == null){
                             cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
                         }
                         if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
@@ -383,7 +388,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             qsTotalAmount = new BigDecimal("0");
                         }
                         CountData mConsumeCountData = mCardConsumeMapper.countAmountAndNum(date, inZipFileName);
-                        if (mConsumeCountData == null) {
+                        if (mConsumeCountData != null || mConsumeCountData.getAmountSum() == null) {
                             mConsumeCountData.setAmountSum(new BigDecimal("0"));
                         }
                         if (qsTotalAmount.compareTo(mConsumeCountData.getAmountSum()) == 0) {
@@ -429,14 +434,11 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             qsTotalAmount = new BigDecimal("0");
                         }
                         CountData cpuConsumeCountData = mCardConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
-                        if (cpuConsumeCountData == null) {
+                        if (cpuConsumeCountData != null && cpuConsumeCountData.getAmountSum() == null) {
                             cpuConsumeCountData.setAmountSum(new BigDecimal("0"));
                         }
                         if (qsTotalAmount.compareTo(cpuConsumeCountData.getAmountSum()) == 0) {
                             log.info("校验成功。m1卡非公交消费文件统计数据并落库");
-                            CountData mCardConsume = mCardConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
-                            consumeNotes = mCardConsume.getNotesSum();
-                            consumeAmount = mCardConsume.getAmountSum();
                         }else {
                             String msg = "m1卡非公交消费文件清算文件的金额与消费文件金额减去错误文件金额不符";
                             log.error("{}校验失败，清算文件的金额:{},消费文件金额减去错误文件金额:{}。",inZipFileName,qsTotalAmount,cpuConsumeCountData.getAmountSum());
@@ -447,8 +449,13 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             processResultService.update(
                                     new FileProcessResult(inZipFileName,null, new Date(),
                                             "6555", "文件金额校验失败"));
-                            return false;
+                            //记录异常交易
+                            exceptionTradeMapper.insert(date,inZipFileName);
+                            //return false;
                         }
+                        CountData mCardConsume = mCardConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
+                        consumeNotes = mCardConsume.getNotesSum();
+                        consumeAmount = mCardConsume.getAmountSum();
                     }else {
                         String msg = "m1卡非公交消费文件错误文件的笔数与消费文件错误笔数不符";
                         log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,cpuCwNotes);
@@ -467,7 +474,6 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 //cpu客服充值
                 CountData cpuInvest = cpuCustomerServiceMapper.countInvestAmountAndNum(date, inZipFileName);
                 CountData cpuConsume = cpuCustomerServiceMapper.countConsumeAmountAndNum(date, inZipFileName);
-
                 investNotes = cpuInvest.getNotesSum();
                 investAmount = cpuInvest.getAmountSum();
                 consumeNotes = cpuConsume.getNotesSum() ;
@@ -487,7 +493,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             consumeNotes,consumeAmount,reviseNotes,reviseAmount));
             return true;
         }catch (Exception e){
-            log.error("统计消费或者客服文件{}的笔数和金额发生异常。",inZipFileName);
+            log.error("统计消费或者客服文件{}的笔数和金额发生异常:{}。",inZipFileName,e);
             //修改
             processResultService.update(
                     new FileProcessResult(inZipFileName, null, new Date(),
@@ -626,10 +632,12 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                 //XF80480001的JY多个8位余额
                 if (inZipFileName.startsWith("XF80480001")) {
                     fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
-                                    "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                                    "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE," +
+                                    " TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
                 } else {
                     fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
-                                    "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00',TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+                                    "PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL,FEE constant '00000.00'," +
+                                    "TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
                 }
                 //控制文件
                 contlFile = new File(sqlldrDir, "mCardConsumeNoBus.ctl");
@@ -738,6 +746,11 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     if (allNotes > 0L) {
                         long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
                         while (allNotes > 0L) {
+                            //其他线程检查
+                            if (threadTaskHandle.getIsError()) {
+                                log.error("有线程发生了异常，无需再执行！");
+                                return false;
+                            }
                             if (allNotes <= pageSize) {
                                 pageSize = allNotes;
                             }
@@ -773,6 +786,11 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     if (allNotes > 0L) {
                         long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
                         while (allNotes > 0L) {
+                            //其他线程检查
+                            if (threadTaskHandle.getIsError()) {
+                                log.error("有线程发生了异常，无需再执行！");
+                                return false;
+                            }
                             if (allNotes <= pageSize) {
                                 pageSize = allNotes;
                             }
@@ -800,6 +818,11 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     if (allNotes > 0L){
                         long pageSize = 100000L,startNum = 0L,endNum,count = 1L;
                         while (allNotes > 0L){
+                            //其他线程检查
+                            if (threadTaskHandle.getIsError()) {
+                                log.error("有线程发生了异常，无需再执行！");
+                                return false;
+                            }
                             if (allNotes <= pageSize){
                                 pageSize = allNotes;
                             }
@@ -836,6 +859,11 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     if (allNotes > 0L) {
                         long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
                         while (allNotes > 0L) {
+                            //其他线程检查
+                            if (threadTaskHandle.getIsError()) {
+                                log.error("有线程发生了异常，无需再执行！");
+                                return false;
+                            }
                             if (allNotes <= pageSize) {
                                 pageSize = allNotes;
                             }

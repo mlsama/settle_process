@@ -1,6 +1,7 @@
 package com.yct.settle.mapper;
 
 import com.yct.settle.pojo.CountData;
+import com.yct.settle.pojo.ErrorData;
 import com.yct.settle.pojo.MCardConsumeNoBus;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,4 +32,5 @@ public interface MCardConsumeNoBusMapper {
 
     long countCwNotes(@Param("date") String date,
                       @Param("zipFileName") String zipFileName);
+
 }

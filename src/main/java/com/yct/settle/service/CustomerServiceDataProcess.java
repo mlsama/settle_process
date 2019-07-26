@@ -9,7 +9,7 @@ import java.io.File;
  */
 public interface CustomerServiceDataProcess {
 
-    boolean batchInsert(String unZipDirName, File unZipFile, File sqlldrDir,
+    boolean batchInsert(String date,String inZipFileName, File unZipFile, File sqlldrDir,
                                 String dbUser, String dbPassword, String odbName);
 
     boolean writerTODM(File dmmj, File dmcj, String settleDate, String inZipFileName);

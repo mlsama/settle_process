@@ -98,11 +98,14 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         }
                         processResultService.delAndInsert(result);
 
-                        //落库:压缩文件校验并落库
-                        boolean insertFlag = batchInsertInvestDate(outZipFile,inputDataFolder,date,dbUser, dbPassword, odbName, sqlldrDir);
+                        //压缩文件校验并落库
+                        boolean insertFlag = batchInsertInvestDate(outZipFile,inputDataFolder,date,dbUser, dbPassword, odbName, sqlldrDir,resultMap);
                         if (!insertFlag) {
                             threadTaskHandle.setIsError(true);
                             return;
+                        }
+                        if ("yes".equals(resultMap.get("investJyIsNull"))){
+                            continue;
                         }
                         //从数据库取出数据写入dm
                         boolean writerToDmFlag = writerToDm(fileName, date, dmmj, dmmx, dmcj, dmcx);
@@ -141,19 +144,15 @@ public class InvestDataProcessImpl implements InvestDataProcess {
      * @param dbPassword        密码
      * @param odbName           库名
      * @param sqlldrDir         sqlldr文件夹
+     * @param resultMap
      */
     private boolean batchInsertInvestDate(File outZipFile, String inputDataFolder, String date,
-                                          String dbUser, String dbPassword, String odbName, File sqlldrDir) {
+                                          String dbUser, String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
         File unOutZipFileDir = null;  //output解压后的文件夹
         File unInZipFileDir = null;  //input解压后的文件夹
         try {
             //处理已经解压过的文件夹
-            if (outZipFile.getName().indexOf(".") == -1) {
-                unOutZipFileDir = new File(outZipFile.getParent(), outZipFile.getName().substring(0, outZipFile.getName().indexOf(".")));
-                if (unOutZipFileDir.exists()) {
-                    FileUtil.zipV2(outZipFile.getAbsolutePath(),unOutZipFileDir.getAbsolutePath());
-                }
-            }
+            outZipFile = FileUtil.zipUnZipFile(outZipFile);
             if (FileUtil.unZip(outZipFile)) {   //output压缩文件解压
                 unOutZipFileDir = new File(outZipFile.getParent(), outZipFile.getName().substring(0, outZipFile.getName().indexOf(".")));
                 //找到对应input的JY
@@ -164,12 +163,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     if (inZipFile.getName().startsWith(unOutZipFileDir.getName())) {
                         tempFile = inZipFile;
                         //处理已经解压过的文件夹
-                        if (inZipFile.getName().indexOf(".") == -1) {
-                            unInZipFileDir = new File(inputDateDir, inZipFile.getName().substring(0, inZipFile.getName().indexOf(".")));
-                            if (unInZipFileDir.exists()) {
-                                FileUtil.zipV2(inZipFile.getAbsolutePath(),unInZipFileDir.getAbsolutePath());
-                            }
-                        }
+                        inZipFile = FileUtil.zipUnZipFile(inZipFile);
                         //解压input文件
                         if (FileUtil.unZip(inZipFile)) {
                             //进入解压目录
@@ -203,6 +197,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     }
                 }
                 if (jy == null){
+                    resultMap.put("investJyIsNull","yes");
                     log.info("output的{}的JY文件没有数据，无需处理。",outZipFile.getAbsolutePath());
                     FileUtil.deleteFile(unOutZipFileDir);
                     FileUtil.deleteFile(unInZipFileDir);
@@ -212,6 +207,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                     "0000", "output的压缩文件里的JY文件没有数据，无需处理。"));
                     return true;
                 }else {
+                    resultMap.put("investJyIsNull","no");
                     if (tempFile == null) { //input下没有一样的压缩文件
                         log.error("output的{}的JY文件有数据，input下没有对应的文件",outZipFile.getAbsolutePath());
                         FileUtil.deleteFile(unOutZipFileDir);
@@ -240,10 +236,14 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         boolean insertFlag = batchInsert(date, unOutZipFile, outZipFile.getName(), dbUser,
                                 dbPassword, odbName, sqlldrDir, targetFile);
                         if (!insertFlag) {
+                            FileUtil.deleteFile(unOutZipFileDir);
+                            FileUtil.deleteFile(unInZipFileDir);
                             return false;
                         }
                     }
                 }
+                FileUtil.deleteFile(unOutZipFileDir);
+                FileUtil.deleteFile(unInZipFileDir);
                 return true;
             }else {
                 log.error("解压output文件{}失败,修改标志，通知其他线程", outZipFile.getAbsolutePath());
@@ -391,16 +391,28 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 contlFile = new File(sqlldrDir,"cpuInvestCheckBackHis.ctl");
             }
         }else { //m1卡充值
+            //是否的特殊的文件
+            boolean isNewCw = FileUtil.isNewCz(targetFile);
             if (fileName.startsWith("JY")){
                 log.info("开始对m1卡充值文化进行内容校验");
                 tableName = "T_MCARD_INVEST";
-                fieldNames = "(" +
-                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
-                        "      PSN, LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      EPID, ETIM, AI, VC, " +
-                        "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                if (isNewCw){
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP, FLAG, ERRNO)";
+                }else {
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvest.ctl");
 
@@ -455,33 +467,61 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 }
             }else if (fileName.startsWith("CZ")){
                 tableName = "T_MCARD_INVEST_CHECKBACK";
-                fieldNames = "(" +
-                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
-                        "      PSN constant '00000000', LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      APP constant 'FF', FLAG, ERRNO)";
+                if (isNewCw){
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN , LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP, FLAG, ERRNO)";
+                }else {
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN constant '00000000', LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP constant 'FF', FLAG, ERRNO)";
+                }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvestCheckBack.ctl");
             }else if (fileName.startsWith("XZ")){
                 tableName = "T_MCARD_INVEST_REVISE_HIS";
-                fieldNames = "(" +
-                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
-                        "      PSN, LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      EPID, ETIM, AI, VC, " +
-                        "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                if (isNewCw){
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP, FLAG, ERRNO)";
+                }else {
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN, LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      EPID, ETIM, AI, VC, " +
+                            "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvestReviseHis.ctl");
             }else if (fileName.startsWith("LC")){
                 tableName = "T_MCARD_INVEST_CHECKBACK_HIS";
-                fieldNames = "(" +
-                        "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
-                        "      PSN constant '00000000', LCN, FCN, " +
-                        "      LPID, LTIM, PID, TIM, " +
-                        "      TF, BAL, TT, RN, " +
-                        "      APP constant 'FF', FLAG, ERRNO)";
+                if (isNewCw){
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN , LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP, FLAG, ERRNO)";
+                }else {
+                    fieldNames = "(" +
+                            "      SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+outZipFileName+"," +
+                            "      PSN constant '00000000', LCN, FCN, " +
+                            "      LPID, LTIM, PID, TIM, " +
+                            "      TF, BAL, TT, RN, " +
+                            "      APP constant 'FF', FLAG, ERRNO)";
+                }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvestCheckBackHis.ctl");
             }
@@ -558,6 +598,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (allNotes > 0L) {
                     long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
                     while (allNotes > 0L) {
+                        //其他线程检查
+                        if (threadTaskHandle.getIsError()) {
+                            log.error("有线程发生了异常，无需再执行！");
+                            return false;
+                        }
                         if (allNotes <= pageSize) {
                             pageSize = allNotes;
                         }
@@ -614,6 +659,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (allNotes > 0L) {
                     long pageSize = 100000L, startNum = 0L, endNum, count = 1L;
                     while (allNotes > 0L) {
+                        //其他线程检查
+                        if (threadTaskHandle.getIsError()) {
+                            log.error("有线程发生了异常，无需再执行！");
+                            return false;
+                        }
                         if (allNotes <= pageSize) {
                             pageSize = allNotes;
                         }
@@ -667,7 +717,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
             }
             return true;
         }catch (Exception e){
-            log.error("把文件{}内容写到对应的dm文件发生异常。",zipFileName);
+            log.error("把文件{}内容写到对应的dm文件发生异常:{}。",zipFileName,e);
             //修改
             processResultService.update(
                     new FileProcessResult(zipFileName, null, new Date(),

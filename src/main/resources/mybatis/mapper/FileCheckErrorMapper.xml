@@ -3,7 +3,7 @@
 <mapper namespace="com.yct.settle.mapper.FileCheckErrorMapper">
 
     <insert id="insert" parameterType="com.yct.settle.pojo.FileCheckError">
-        insert into T_FILE_CONTENT_CHECK
+        insert into T_FILE_CHECK_ERROR
         (
         SETTLE_DATE,
         ZIP_FILE_NAME,

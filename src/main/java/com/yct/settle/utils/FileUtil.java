@@ -426,4 +426,13 @@ public class FileUtil {
             throw new RuntimeException(unZipFile+"不存在");
         }
     }
+
+    public static File zipUnZipFile(File srcFile){
+        //src不是压缩文件
+        if (srcFile.getName().indexOf(".") == -1) {
+            FileUtil.zipV2(srcFile.getAbsolutePath(),srcFile.getAbsolutePath()+".ZIP");
+            srcFile = new File(srcFile.getAbsolutePath()+".ZIP");
+        }
+        return srcFile;
+    }
 }
