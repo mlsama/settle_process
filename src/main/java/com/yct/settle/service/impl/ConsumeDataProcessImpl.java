@@ -71,7 +71,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
      * @return
      */
     @Override
-    public void processConsumeFiles(String inputDataFolder, String outputDataFolder, String date,
+    public boolean processConsumeFiles(String inputDataFolder, String outputDataFolder, String date,
                                        File dmcj, File dmcx, File dmmj, File dmmx, String dbUser,
                                        String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
         String inZipFileName = null;
@@ -85,7 +85,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     //其他线程检查
                     if (threadTaskHandle.getIsError()) {
                         log.info("有线程发生了异常，处理充值文件的线程无需再执行！");
-                        return ;
+                        return false;
                     }
                     inZipFileName = inZipFile.getName();
                     //处理inputDate下的一个压缩文件
@@ -121,7 +121,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                                                             dbUser,dbPassword,odbName,sqlldrDir,resultMap);
                         if (!insertFlag){
                             threadTaskHandle.setIsError(true);
-                            return ;
+                            return false;
                         }
                         if ("yes".equals(resultMap.get("consumeJyIsNull"))){
                             continue;
@@ -136,7 +136,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         boolean audit = auditAndCount(inZipFileName,isBusFile,date,resultMap);
                         if (!audit){
                             threadTaskHandle.setIsError(true);
-                            return;
+                            return false;
                         }
                         if ("yes".equals(resultMap.get("consumeProcessNextZipFile"))){
                             continue;
@@ -145,7 +145,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         boolean writeFlag = writerConsumeOrCustomerToDm(dmmj,dmmx,dmcj,dmcx,date,inZipFileName,isBusFile,zipFileType);
                         if (!writeFlag){
                             threadTaskHandle.setIsError(true);
-                            return;
+                            return false;
                         }
                     }
                 }
@@ -157,8 +157,9 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
             //修改
             processResultService.update(new FileProcessResult(inZipFileName,null,new Date(),
                         "6555","处理消费或者客服文件发生异常"));
-            return ;
+            return false;
         }
+        return true;
     }
 
     /**

@@ -12,7 +12,7 @@ public interface ConsumeDataProcess {
 
     boolean writerTODM(File dmmj, File dmmx, File dmcj, File dmcx, String settleDate, String zipFileName,Boolean isBusFile);
 
-    void processConsumeFiles(String inputDataFolder, String outputDataFolder, String name, File dmcj,
+    boolean processConsumeFiles(String inputDataFolder, String outputDataFolder, String name, File dmcj,
                                 File dmcx, File dmmj, File dmmx, String dbUser, String dbPassword, String odbName,
                                 File sqlldrDir, Map<String, String> resultMap);
 }

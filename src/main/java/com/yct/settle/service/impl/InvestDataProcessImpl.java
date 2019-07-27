@@ -69,7 +69,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
      * @return
      */
     @Override
-    public void processInvestFiles(String inputDataFolder,String outputDataFolder, String date, File dmcj,
+    public boolean processInvestFiles(String inputDataFolder,String outputDataFolder, String date, File dmcj,
                                       File dmcx, File dmmj, File dmmx, String dbUser,
                                       String dbPassword, String odbName, File sqlldrDir, Map<String, String> resultMap) {
         File outputDateDir = new File(outputDataFolder + File.separator + date);
@@ -81,7 +81,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     //其他线程检查
                     if (threadTaskHandle.getIsError()) {
                         log.error("有线程发生了异常，处理充值文件的线程无需再执行！");
-                        return;
+                        return false;
                     }
                     //压缩包文件名称
                     fileName = outZipFile.getName();
@@ -102,7 +102,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         boolean insertFlag = batchInsertInvestDate(outZipFile,inputDataFolder,date,dbUser, dbPassword, odbName, sqlldrDir,resultMap);
                         if (!insertFlag) {
                             threadTaskHandle.setIsError(true);
-                            return;
+                            return false;
                         }
                         if ("yes".equals(resultMap.get("investProcessNextZipFile"))){
                             continue;
@@ -111,28 +111,29 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         boolean writerToDmFlag = writerToDm(fileName, date, dmmj, dmmx, dmcj, dmcx);
                         if (!writerToDmFlag){
                             threadTaskHandle.setIsError(true);
-                            return;
+                            return false;
                         }
                         //把这个充值文件的统计数据存到数据库表
                         boolean countInvestDataFlag = countInvestDataToDb(date,fileName);
                         if (!countInvestDataFlag){
                             threadTaskHandle.setIsError(true);
-                            return;
+                            return false;
                         }
                         resultMap.put("investResultCode", "0000");
                     }
                 }
             } else {
                 log.error("文件夹{}不存在", outputDateDir.getAbsolutePath());
-                return;
+                return false;
             }
         } catch (Exception e) {
             threadTaskHandle.setIsError(true);
             log.error("处理充值文件{}发生异常：{},修改标志，通知其他线程", fileName, e);
             //修改
             processResultService.update(new FileProcessResult(fileName, null, new Date(), "6555", "处理充值文件发生异常"));
-            return;
+            return false;
         }
+        return true;
     }
 
     /**
