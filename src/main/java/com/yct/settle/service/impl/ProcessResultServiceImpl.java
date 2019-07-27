@@ -1,5 +1,6 @@
 package com.yct.settle.service.impl;
 
+import com.yct.settle.mapper.ExceptionTradeMapper;
 import com.yct.settle.mapper.FileProcessResultMapper;
 import com.yct.settle.mapper.ProcessResultMapper;
 import com.yct.settle.pojo.FileProcessResult;
@@ -20,6 +21,8 @@ public class ProcessResultServiceImpl implements ProcessResultService {
     private FileProcessResultMapper fileProcessResultMapper;
     @Resource
     private ProcessResultMapper processResultMapper;
+    @Resource
+    private ExceptionTradeMapper exceptionTradeMapper;
 
     @Override
     public void delAndInsert(FileProcessResult result) {
@@ -37,5 +40,11 @@ public class ProcessResultServiceImpl implements ProcessResultService {
     @Override
     public void update(FileProcessResult result) {
         fileProcessResultMapper.update(result);
+    }
+
+    @Override
+    public void delAndInsert(String date, String zipFileName) {
+        exceptionTradeMapper.delByPram(date,zipFileName);
+        exceptionTradeMapper.insert(date,zipFileName);
     }
 }

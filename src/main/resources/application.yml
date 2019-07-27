@@ -19,10 +19,10 @@ mybatis:
 
 
 #input数据所在的文件夹
-inputDataFolder: E://testData//input
+inputDataFolder: D://testData//input
 #output数据所在的文件夹
-outputDataFolder: E://testData//output
+outputDataFolder: D://testData//output
 #处理结果存放的文件夹
-resultFolder: E://testData//result
+resultFolder: D://testData//result
 #sqlldr控制脚本存放文件夹
-sqlldrFolder: E://testData//sqlldr
+sqlldrFolder: D://testData//sqlldr

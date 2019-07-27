@@ -13,4 +13,7 @@ public interface ExceptionTradeMapper {
 
     void insert(@Param("date") String date,
                 @Param("zipFileName") String zipFileName);
+
+    void delByPram(@Param("date") String date,
+                   @Param("zipFileName") String zipFileName);
 }

@@ -159,8 +159,14 @@ public class DataProcessManager {
                 if ("0000".equals(investResultCode) && "0000".equals(consumeResultCode)){
                     //汇总充值数据
                     CountData investDate = fileProcessResultMapper.countInvestDate(dateDir.getName());
+                    if (investDate == null){
+                        investDate = new CountData();
+                    }
                     //汇总消费数据
                     CountData consumeDate = fileProcessResultMapper.countConsumeDate(dateDir.getName());
+                    if (consumeDate == null){
+                        consumeDate = new CountData();
+                    }
                     //汇总修正数据
                     CountData reviseDate = fileProcessResultMapper.countReviseDate(dateDir.getName());
                     if (reviseDate == null){
@@ -183,8 +189,14 @@ public class DataProcessManager {
                     }
                     //cpu卡汇总数据
                     CountData cpuDate = fileProcessResultMapper.countCpuDate(dateDir.getName());
+                    if (cpuDate == null){
+                        cpuDate = new CountData();
+                    }
                     //m1卡汇总数据
                     CountData mCardDate = fileProcessResultMapper.countMCardDate(dateDir.getName());
+                    if (mCardDate == null){
+                        mCardDate = new CountData();
+                    }
                     long totalNotes = investDate.getNotesSum() + consumeDate.getNotesSum();
                     BigDecimal totalAmount = AmountUtil.add(investDate.getAmountSum(), consumeDate.getAmountSum());
                     log.info("{}日结算情况如下：总笔数：{}，总金额：{}。充值总笔数：{}，充值总金额：{}。其中cpu卡充值笔数：{}，充值金额：{}。" +

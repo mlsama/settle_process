@@ -15,7 +15,4 @@ public interface SettleAuditMapper {
 
     BigDecimal countTotalAmount(@Param("date") String date,
                                 @Param("zipFileName") String zipFileName);
-
-    BigDecimal countTotalAmountZ(@Param("date") String date,
-                                 @Param("zipFileName") String zipFileName);
 }

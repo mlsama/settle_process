@@ -8,9 +8,4 @@
         WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
 
-    <select id="countTotalAmountZ" resultType="java.math.BigDecimal">
-        SELECT sum(TRC) from T_SETTLE_AUDIT
-        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
-    </select>
-
 </mapper>

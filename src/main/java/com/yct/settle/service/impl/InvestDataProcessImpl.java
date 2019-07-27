@@ -104,7 +104,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             threadTaskHandle.setIsError(true);
                             return;
                         }
-                        if ("yes".equals(resultMap.get("investJyIsNull"))){
+                        if ("yes".equals(resultMap.get("investProcessNextZipFile"))){
                             continue;
                         }
                         //从数据库取出数据写入dm
@@ -197,7 +197,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     }
                 }
                 if (jy == null){
-                    resultMap.put("investJyIsNull","yes");
+                    resultMap.put("investProcessNextZipFile","yes");
                     log.info("output的{}的JY文件没有数据，无需处理。",outZipFile.getAbsolutePath());
                     FileUtil.deleteFile(unOutZipFileDir);
                     FileUtil.deleteFile(unInZipFileDir);
@@ -207,7 +207,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                                     "0000", "output的压缩文件里的JY文件没有数据，无需处理。"));
                     return true;
                 }else {
-                    resultMap.put("investJyIsNull","no");
+                    resultMap.put("investProcessNextZipFile","yes");
                     if (tempFile == null) { //input下没有一样的压缩文件
                         log.error("output的{}的JY文件有数据，input下没有对应的文件",outZipFile.getAbsolutePath());
                         FileUtil.deleteFile(unOutZipFileDir);
@@ -216,9 +216,10 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         processResultService.update(
                                 new FileProcessResult(outZipFile.getName(), null, new Date(),
                                         "6555", "output的充值文件有交易数据，input下没有对应的文件"));
-                        return false;
+                        return true;
                     }
                     if (targetFile == null){
+                        resultMap.put("investProcessNextZipFile","yes");
                         log.error("{}这个文件里没有JY文件", tempFile.getAbsolutePath());
                         FileUtil.deleteFile(unOutZipFileDir);
                         FileUtil.deleteFile(unInZipFileDir);
@@ -226,15 +227,16 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         processResultService.update(
                                 new FileProcessResult(outZipFile.getName(), null, new Date(),
                                         "6555", "input压缩文件里没有JY文件"));
-                        return false;
+                        return true;
                     }
                 }
                 //落库，校验
+                resultMap.put("investProcessNextZipFile","no");
                 for (File unOutZipFile : unOutZipFileDir.listFiles()) {
                     if (!(unOutZipFile.getName().startsWith("MD") || unOutZipFile.getName().startsWith("QS") ||
                             unOutZipFile.getName().startsWith("RZ"))){
                         boolean insertFlag = batchInsert(date, unOutZipFile, outZipFile.getName(), dbUser,
-                                dbPassword, odbName, sqlldrDir, targetFile);
+                                dbPassword, odbName, sqlldrDir, targetFile,resultMap);
                         if (!insertFlag) {
                             FileUtil.deleteFile(unOutZipFileDir);
                             FileUtil.deleteFile(unInZipFileDir);
@@ -276,10 +278,12 @@ public class InvestDataProcessImpl implements InvestDataProcess {
      * @param dbUser
      * @param dbPassword
      * @param sqlldrDir
+     * @param resultMap
      * @return
      */
     public boolean batchInsert(String date, File unZipFile, String outZipFileName, String dbUser,
-                               String dbPassword, String odbName, File sqlldrDir,File targetFile) {
+                               String dbPassword, String odbName, File sqlldrDir, File targetFile,
+                               Map<String, String> resultMap) {
         //表名
         String tableName = null;
         //表字段
@@ -348,9 +352,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     processResultService.update(
                             new FileProcessResult(outZipFileName, unZipFile.getAbsolutePath(), new Date(),
                                     "6555", "文件交易笔数，金额校验失败"));
-                    return false;
+                    resultMap.put("investProcessNextZipFile","yes");
+                    return true;
                 }else {
                     log.info("{}校验成功。",outZipFileName);
+                    resultMap.put("investProcessNextZipFile","no");
                     return true;
                 }
 
@@ -460,9 +466,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                     processResultService.update(
                             new FileProcessResult(outZipFileName, unZipFile.getAbsolutePath(), new Date(),
                                     "6555", "文件交易笔数，金额校验失败"));
-                    return false;
+                    resultMap.put("investProcessNextZipFile","yes");
+                    return true;
                 }else {
                     log.info("{}校验成功。",outZipFileName);
+                    resultMap.put("investProcessNextZipFile","no");
                     return true;
                 }
             }else if (fileName.startsWith("CZ")){

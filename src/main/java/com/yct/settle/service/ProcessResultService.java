@@ -15,4 +15,6 @@ public interface ProcessResultService {
     void delAndInsert(ProcessResult result);
 
     void update(FileProcessResult result);
+
+    void delAndInsert(String date,String zipFileName);
 }
