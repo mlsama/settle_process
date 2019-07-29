@@ -17,7 +17,7 @@
         OUTPUT_INVEST_NOTES,
         OUTPUT_INVEST_AMOUNT,
         INPUT_ERROR_NOTES,
-        OUPUT_ERROR_NOTES,
+        OUTPUT_ERROR_NOTES,
         CONSUME_AMOUNT,
         QS_AMOUNT
         )
