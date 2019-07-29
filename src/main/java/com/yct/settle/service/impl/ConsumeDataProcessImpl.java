@@ -409,6 +409,9 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             fileCheckErrorMapper.insert(new FileCheckError(date,inZipFileName,"02","01",new Date(),"6555",
                                     resultMsg,0L,null,0L,null,mCardCwNotes,cwNotes,
                                    mConsumeCountData.getAmountSum(),qsTotalAmount));
+                            //记录异常交易
+                            processResultService.delAndInsert("'"+date+"'","'"+inZipFileName+"'",
+                                                                    "T_MCARD_CONSUME","T_MCARD_CONSUME_ERROR");
                         }
                         consumeNotes = mConsumeCountData.getNotesSum();
                         consumeAmount = mConsumeCountData.getAmountSum();
@@ -452,7 +455,8 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                                     resultMsg,0L,null,0L,null,mCardCwNotes,cwNotes,
                                     mCardConsumeCountData.getAmountSum(),qsTotalAmount));
                             //记录异常交易
-                            processResultService.delAndInsert(date,inZipFileName);
+                            processResultService.delAndInsert("'"+date+"'","'"+inZipFileName+"'",
+                                                                    "T_MCARD_CONSUME_NOBUS","T_MCARD_CONSUME_ERROR_NOBUS");
                         }
                         consumeNotes = mCardConsumeCountData.getNotesSum();
                         consumeAmount = mCardConsumeCountData.getAmountSum();
@@ -612,7 +616,8 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                                             "PID, PSN, STATUS)";
                         File ocfile = new File(sqlldrDir, "mCardConsumeError.ctl");
                         //pid=cw的psn,psn=cw的pid,把它转换回来
-                        if (inZipFileName.startsWith("XF0000") || inZipFileName.startsWith("XF0002")) {
+                        if (inZipFileName.startsWith("XF0000") || inZipFileName.startsWith("XF0002") ||
+                                inZipFileName.startsWith("XF90100001")) {
                             File cw = new File(unOutZipFileDir, "cw.txt");
                             convertCw(outputUnzipFile, cw);
                             outputUnzipFile = cw;
@@ -721,7 +726,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
             String line = null,resultLine = null;
             while ((line = reader.readLine()) != null){
                 String[] split = line.split("\t");
-                resultLine = split[1] + "\t" + split[0] + System.getProperty("line.separator");
+                resultLine = split[1] + "\t" + split[0] + "\t" + split[2] + System.getProperty("line.separator");
                 writer.write(resultLine);
             }
         }catch (Exception e) {

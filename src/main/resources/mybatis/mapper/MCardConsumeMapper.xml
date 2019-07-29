@@ -48,9 +48,9 @@
     <select id="findCwNotes" resultType="long">
         SELECT count(1) from
         (
-          SELECT PID,PSN FROM T_MCARD_CONSUME WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
-          INTERSECT
           SELECT PID,PSN FROM T_MCARD_CONSUME_ERROR WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+          INTERSECT
+          SELECT PID,PSN FROM T_MCARD_CONSUME WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
         )
     </select>
 

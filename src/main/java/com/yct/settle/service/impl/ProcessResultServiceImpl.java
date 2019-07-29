@@ -43,8 +43,8 @@ public class ProcessResultServiceImpl implements ProcessResultService {
     }
 
     @Override
-    public void delAndInsert(String date, String zipFileName) {
+    public void delAndInsert(String date, String zipFileName,String tableName,String errorTableName) {
         exceptionTradeMapper.delByPram(date,zipFileName);
-        exceptionTradeMapper.insert(date,zipFileName);
+        exceptionTradeMapper.insert(date,zipFileName,tableName,errorTableName);
     }
 }

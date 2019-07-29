@@ -12,7 +12,9 @@ import org.apache.ibatis.annotations.Param;
 public interface ExceptionTradeMapper {
 
     void insert(@Param("date") String date,
-                @Param("zipFileName") String zipFileName);
+                @Param("zipFileName") String zipFileName,
+                @Param("tableName") String tableName,
+                @Param("errorTableName") String errorTableName);
 
     void delByPram(@Param("date") String date,
                    @Param("zipFileName") String zipFileName);

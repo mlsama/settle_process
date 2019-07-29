@@ -11,7 +11,8 @@
 
     </delete>
 
-    <select id="insert">
+    <!--不使用预编译-->
+    <select id="insert" statementType="STATEMENT">
         insert into T_EXCEPTION_TRADE
           select
               t1.SETTLE_DATE,
@@ -26,19 +27,19 @@
               t1.BAL,
               t1.TT,
               t1.TAC
-          from T_MCARD_CONSUME_NOBUS t1,
+          from ${tableName} t1,
           (
             select PID,PSN from
               (
-                select PID,PSN,count(1) c from T_MCARD_CONSUME_NOBUS
-                WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR} group by PID,PSN
+                select PID,PSN,count(1) c from ${tableName}
+                WHERE SETTLE_DATE=${date} and ZIP_FILE_NAME=${zipFileName} group by PID,PSN
               ) where c > 1
             intersect
-            select PID,PSN from T_MCARD_CONSUME_ERROR_NOBUS where SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+            select PID,PSN from ${errorTableName} where SETTLE_DATE=${date} and ZIP_FILE_NAME=${zipFileName}
           ) t2 where t1.PID=t2.PID
                       and t1.PSN=t2.PSN
-                      and t1.SETTLE_DATE=#{date,jdbcType=VARCHAR}
-                      and t1.ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+                      and t1.SETTLE_DATE=${date}
+                      and t1.ZIP_FILE_NAME=${zipFileName}
     </select>
 
 

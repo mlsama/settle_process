@@ -17,7 +17,7 @@ public class SqlTest {
     private ExceptionTradeMapper exceptionTradeMapper;
     @Test
     public void insertTest(){
-        exceptionTradeMapper.insert("20120610", "XF2017000120120610.ZIP");
+        exceptionTradeMapper.insert("'20121029'", "'XF8015000120121029.ZIP'","T_MCARD_CONSUME_NOBUS","T_MCARD_CONSUME_ERROR_NOBUS");
 
     }
 }
