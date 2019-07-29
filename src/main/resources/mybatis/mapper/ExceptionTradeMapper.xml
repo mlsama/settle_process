@@ -29,13 +29,13 @@
               t1.TAC
           from ${tableName} t1,
           (
+            select PID,PSN from ${errorTableName} where SETTLE_DATE=${date} and ZIP_FILE_NAME=${zipFileName}
+            intersect
             select PID,PSN from
               (
                 select PID,PSN,count(1) c from ${tableName}
                 WHERE SETTLE_DATE=${date} and ZIP_FILE_NAME=${zipFileName} group by PID,PSN
               ) where c > 1
-            intersect
-            select PID,PSN from ${errorTableName} where SETTLE_DATE=${date} and ZIP_FILE_NAME=${zipFileName}
           ) t2 where t1.PID=t2.PID
                       and t1.PSN=t2.PSN
                       and t1.SETTLE_DATE=${date}
