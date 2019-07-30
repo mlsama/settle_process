@@ -470,7 +470,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                                 null,null));
                     }
                 }
-            }else if (inZipFileName.startsWith("Ck")){ //cpu卡客服
+            }else if (inZipFileName.startsWith("CK")){ //cpu卡客服
                 log.info("cpu卡客服文件统计数据并落库");
                 resultCode = "0000";
                 resultMsg = "处理成功";
