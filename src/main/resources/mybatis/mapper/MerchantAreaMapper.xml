@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yct.settle.mapper.MerchantAreaMapper">
+
+    <select id="getUseAreaByMerchant" resultType="java.lang.String">
+        SELECT AREA_CODE from T_MERCHANT_AREA
+        WHERE MERCHANT_CODE=#{merchantCode,jdbcType=VARCHAR}
+    </select>
+
+</mapper>

@@ -112,9 +112,15 @@ public class DataProcessTest {
     }
 
     @Test
-    public void areaTest(){
+    public void cardAreaTest(){
+
         String issues = areaService.getIssuesByCardNo("5100003556334963");
         System.out.println(issues);
+    }
+    @Test
+    public void userAreaTest(){
+        String userArea = areaService.getUseAreaByMerchant("CX9004000120110310");
+        System.out.println(userArea);
     }
 
 }

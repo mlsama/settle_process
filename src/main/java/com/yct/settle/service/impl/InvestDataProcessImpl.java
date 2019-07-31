@@ -607,6 +607,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
     private boolean writerToDm(String zipFileName, String settleDate, File dmmj, File dmmx, File dmcj, File dmcx) {
         try {
             log.info("从数据库取充值数据写到对应的dm文件");
+            //根据服务商代码确定卡使用地：USEA
+            String userArea = areaService.getUseAreaByMerchant(zipFileName);
             if (zipFileName.startsWith("CC")){ //cpu卡
                 ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
                 //获取总笔数
@@ -628,7 +630,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         if (cpuInvestList.size() > 0){
                             for (CpuInvest cpuInvest : cpuInvestList){
                                 CpuTrade cpuTrade = new CpuTrade();
-                                convertToCpuTrade(cpuInvest,cpuTrade,settleDate,zipFileName);
+                                convertToCpuTrade(cpuInvest,cpuTrade,settleDate,zipFileName,userArea);
                                 cpuTradeList.add(cpuTrade);
                             }
                         }
@@ -643,7 +645,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (cpuInvestCheckBackList.size() > 0){
                     for (CpuInvestCheckBack cpuInvestCheckBack : cpuInvestCheckBackList){
                         CpuTrade cpuTrade = new CpuTrade();
-                        convertToCpuTrade(cpuInvestCheckBack,cpuTrade,settleDate,zipFileName);
+                        convertToCpuTrade(cpuInvestCheckBack,cpuTrade,settleDate,zipFileName,userArea);
                         cpuTradeList.add(cpuTrade);
                     }
                 }
@@ -654,7 +656,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (cpuInvestReviseHisList.size() > 0){
                     for (CpuInvestReviseHis cpuInvestReviseHis : cpuInvestReviseHisList){
                         CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
-                        convertToCpuTradeRevise(cpuInvestReviseHis,cpuTradeRevise,settleDate,zipFileName);
+                        convertToCpuTradeRevise(cpuInvestReviseHis,cpuTradeRevise,settleDate,zipFileName,userArea);
                         cpuTradeReviseList.add(cpuTradeRevise);
                     }
                 }
@@ -662,7 +664,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (investCheckBackHisList.size() > 0){
                     for (CpuInvestCheckBackHis cpuInvestCheckBackHis : investCheckBackHisList){
                         CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
-                        convertToCpuTradeRevise(cpuInvestCheckBackHis,cpuTradeRevise,settleDate,zipFileName);
+                        convertToCpuTradeRevise(cpuInvestCheckBackHis,cpuTradeRevise,settleDate,zipFileName,userArea);
                         cpuTradeReviseList.add(cpuTradeRevise);
                     }
                 }
@@ -689,7 +691,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         if (mCardInvestList.size() > 0){
                             for (MCardInvest mCardInvest : mCardInvestList){
                                 MCardTrade mCardTrade = new MCardTrade();
-                                convertToMCardTrade(mCardInvest,mCardTrade,settleDate,zipFileName);
+                                convertToMCardTrade(mCardInvest,mCardTrade,settleDate,zipFileName,userArea);
                                 mCardTradeList.add(mCardTrade);
                             }
                         }
@@ -705,7 +707,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (mCardInvestCheckBackList.size() > 0){
                     for (MCardInvestCheckBack mCardInvestCheckBack : mCardInvestCheckBackList){
                         MCardTrade mCardTrade = new MCardTrade();
-                        convertToMCardTrade(mCardInvestCheckBack,mCardTrade,settleDate,zipFileName);
+                        convertToMCardTrade(mCardInvestCheckBack,mCardTrade,settleDate,zipFileName,userArea);
                         mCardTradeList.add(mCardTrade);
                     }
                 }
@@ -717,7 +719,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (mCardInvestReviseHisList.size() > 0){
                     for (MCardInvestReviseHis mCardInvestReviseHis : mCardInvestReviseHisList){
                         MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
-                        convertToMCardTradeRevise(mCardInvestReviseHis,mCardTradeRevise,settleDate,zipFileName);
+                        convertToMCardTradeRevise(mCardInvestReviseHis,mCardTradeRevise,settleDate,zipFileName,userArea);
                         mCardTradeReviseList.add(mCardTradeRevise);
                     }
                 }
@@ -725,7 +727,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                 if (mCardInvestCheckBackHisList.size() > 0){
                     for (MCardInvestCheckBackHis mCardInvestCheckBackHis : mCardInvestCheckBackHisList){
                         MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
-                        convertToMCardTradeRevise(mCardInvestCheckBackHis,mCardTradeRevise,settleDate,zipFileName);
+                        convertToMCardTradeRevise(mCardInvestCheckBackHis,mCardTradeRevise,settleDate,zipFileName,userArea);
                         mCardTradeReviseList.add(mCardTradeRevise);
                     }
                 }
@@ -742,7 +744,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         }
     }
 
-    private void convertToMCardTradeRevise(MCardInvestCheckBackHis mCardInvestCheckBackHis, MCardTradeRevise mCardTradeRevise, String settleDate, String zipFileName) {
+    private void convertToMCardTradeRevise(MCardInvestCheckBackHis mCardInvestCheckBackHis, MCardTradeRevise mCardTradeRevise,
+                                           String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(mCardInvestCheckBackHis,mCardTradeRevise);
         mCardTradeRevise.setQDATE(settleDate);
         mCardTradeRevise.setQNAME(zipFileName);
@@ -756,8 +759,12 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTradeRevise.setEPID("00000000");
         mCardTradeRevise.setETIM("00000000000000");
         mCardTradeRevise.setTAC("00000000");
+        mCardTradeRevise.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(mCardInvestCheckBackHis.getLCN());
+        mCardTradeRevise.setISSUEA(issuea); //发行地
     }
-    private void convertToMCardTradeRevise(MCardInvestReviseHis mCardInvestReviseHis, MCardTradeRevise mCardTradeRevise, String settleDate, String zipFileName) {
+    private void convertToMCardTradeRevise(MCardInvestReviseHis mCardInvestReviseHis, MCardTradeRevise mCardTradeRevise,
+                                           String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(mCardInvestReviseHis,mCardTradeRevise);
         mCardTradeRevise.setQDATE(settleDate);
         mCardTradeRevise.setQNAME(zipFileName);
@@ -768,9 +775,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTradeRevise.setICN(mCardInvestReviseHis.getLCN());
         mCardTradeRevise.setFEE(new BigDecimal("0"));
         mCardTradeRevise.setBINF(mCardInvestReviseHis.getAPP()+"000000000000000000");
+        mCardTradeRevise.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(mCardInvestReviseHis.getLCN());
+        mCardTradeRevise.setISSUEA(issuea); //发行地
     }
 
-    private void convertToMCardTrade(MCardInvestCheckBack mCardInvestCheckBack, MCardTrade mCardTrade, String settleDate, String zipFileName) {
+    private void convertToMCardTrade(MCardInvestCheckBack mCardInvestCheckBack, MCardTrade mCardTrade,
+                                     String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(mCardInvestCheckBack,mCardTrade);
         mCardTrade.setQDATE(settleDate);
         mCardTrade.setQNAME(zipFileName);
@@ -782,8 +793,11 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTrade.setEPID("00000000");
         mCardTrade.setETIM("00000000000000");
         mCardTrade.setTAC("00000000");
+        mCardTrade.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(mCardInvestCheckBack.getLCN());
+        mCardTrade.setISSUEA(issuea); //发行地
     }
-    private void convertToMCardTrade(MCardInvest mCardInvest, MCardTrade mCardTrade, String settleDate, String zipFileName) {
+    private void convertToMCardTrade(MCardInvest mCardInvest, MCardTrade mCardTrade, String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(mCardInvest,mCardTrade);
         mCardTrade.setQDATE(settleDate);
         mCardTrade.setQNAME(zipFileName);
@@ -792,9 +806,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTrade.setICN(mCardInvest.getLCN());
         mCardTrade.setFEE(new BigDecimal("0"));
         mCardTrade.setBINF(mCardInvest.getAPP()+"000000000000000000");
+        mCardTrade.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(mCardInvest.getLCN());
+        mCardTrade.setISSUEA(issuea); //发行地
     }
 
-    private void convertToCpuTradeRevise(CpuInvestReviseHis cpuInvestReviseHis, CpuTradeRevise cpuTradeRevise, String settleDate, String zipFileName) {
+    private void convertToCpuTradeRevise(CpuInvestReviseHis cpuInvestReviseHis, CpuTradeRevise cpuTradeRevise,
+                                                                    String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuInvestReviseHis,cpuTradeRevise);
         cpuTradeRevise.setQDATE(settleDate);
         cpuTradeRevise.setLTIME(DateUtil.getTomorrow(cpuInvestReviseHis.getTIM()));
@@ -803,8 +821,12 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTradeRevise.setXT(cpuInvestReviseHis.getFLAG());
         cpuTradeRevise.setBINF(cpuInvestReviseHis.getAPP()+"000000000000000000");
         cpuTradeRevise.setDMON("0000000000000");
+        cpuTradeRevise.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(cpuInvestReviseHis.getLCN());
+        cpuTradeRevise.setISSUEA(issuea); //发行地
     }
-    private void convertToCpuTradeRevise(CpuInvestCheckBackHis cpuInvestCheckBackHis, CpuTradeRevise cpuTradeRevise, String settleDate, String zipFileName) {
+    private void convertToCpuTradeRevise(CpuInvestCheckBackHis cpuInvestCheckBackHis, CpuTradeRevise cpuTradeRevise,
+                                                            String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuInvestCheckBackHis,cpuTradeRevise);
         cpuTradeRevise.setQDATE(settleDate);
         cpuTradeRevise.setLTIME(DateUtil.getTomorrow(cpuInvestCheckBackHis.getTIM()));
@@ -816,19 +838,22 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTradeRevise.setEPID("000000000000");
         cpuTradeRevise.setETIM("00000000000000");
         cpuTradeRevise.setTAC("00000000");
+        cpuTradeRevise.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(cpuInvestCheckBackHis.getLCN());
+        cpuTradeRevise.setISSUEA(issuea); //发行地
     }
 
-    private void convertToCpuTrade(CpuInvest cpuInvest, CpuTrade cpuTrade, String settleDate, String zipFileName) {
+    private void convertToCpuTrade(CpuInvest cpuInvest, CpuTrade cpuTrade, String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuInvest,cpuTrade);
         cpuTrade.setDT("01");
         cpuTrade.setQDATE(settleDate);
         cpuTrade.setQNAME(zipFileName);
         cpuTrade.setDMON("0000000000000");
-        cpuTrade.setUSEA(cpuInvest.getAREA()); //使用地
+        cpuTrade.setUSEA(userArea); //使用地
         String issuea = areaService.getIssuesByCardNo(cpuInvest.getLCN());
         cpuTrade.setISSUEA(issuea); //发行地
     }
-    private void convertToCpuTrade(CpuInvestCheckBack cpuInvestCheckBack, CpuTrade cpuTrade, String settleDate, String zipFileName) {
+    private void convertToCpuTrade(CpuInvestCheckBack cpuInvestCheckBack, CpuTrade cpuTrade, String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuInvestCheckBack,cpuTrade);
         cpuTrade.setDT("01");
         cpuTrade.setQDATE(settleDate);
@@ -837,6 +862,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTrade.setTAC("00000000");
         cpuTrade.setEPID("000000000000");
         cpuTrade.setETIM("00000000000000");
+        cpuTrade.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(cpuInvestCheckBack.getLCN());
+        cpuTrade.setISSUEA(issuea); //发行地
     }
 
 }

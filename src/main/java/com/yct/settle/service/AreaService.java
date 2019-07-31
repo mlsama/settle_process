@@ -8,4 +8,6 @@ package com.yct.settle.service;
 public interface AreaService {
 
     String getIssuesByCardNo(String cardNo);
+
+    String getUseAreaByMerchant(String zipFileName);
 }

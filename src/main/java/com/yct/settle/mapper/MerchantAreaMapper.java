@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 2019/7/3 8:54
  */
 @Mapper
-public interface CardAreaMapper {
+public interface MerchantAreaMapper {
 
-    String getIssuesByCardNo(String cardNo);
+    String getUseAreaByMerchant(String merchantCode);
 }

@@ -125,7 +125,7 @@ public class CpuTradeRevise {
         if (LTIM.length() == 8){
             LTIM += "00";
         }
-        return QDATE+'\t'+LTIME + '\t'+DT+'\t'+XT + '\t'+"01"+ '\t' + "01" + '\t'+ PID + '\t'+ PSN + '\t'+
+        return QDATE+'\t'+LTIME + '\t'+DT+'\t'+XT + '\t'+ISSUEA+ '\t' + USEA + '\t'+ PID + '\t'+ PSN + '\t'+
                 TIM + '\t'+ LCN + '\t' + FCN + '\t'+ AmountUtil.convertToString(TF, 8) +'\t' + AmountUtil.convertToString(FEE, 8) +'\t' +
                 AmountUtil.convertToString(BAL, 8) +'\t' + TT + '\t' + ATT + '\t' +
                 CRN +'\t' + XRN +'\t' + DMON + '\t' + EPID + '\t' + ETIM + '\t' + LPID + '\t' + LTIM + '\t' + TAC
