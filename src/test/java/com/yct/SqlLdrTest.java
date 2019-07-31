@@ -37,11 +37,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20121226\\CC2052000320121225\\JY2052000320121225.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     @Test
@@ -57,11 +52,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20121226\\CC2052000320121225\\CZ2052000320121225.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
 
@@ -84,11 +74,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\testData\\input\\20121224\\CZ2031000320121223\\JY2031000320121223.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void mCardInvestCheckInsertTest(){
@@ -102,11 +87,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\testData\\input\\20121224\\CZ2031000320121223\\CZ2031000320121223.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     @Test
@@ -122,11 +102,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20110309\\CZ2030000120110308\\XZ2030000120110308.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     @Test
@@ -141,11 +116,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20110309\\CZ2039000120110308\\LC2039000120110308.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                                     tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     /**------------------------消费------------------------------*/
@@ -159,11 +129,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\input\\20121224\\CX802300012012122114\\JY802300012012122114.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void cpuConsumeNoBusTest(){
@@ -176,11 +141,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\input\\20121224\\CX9010000120121224\\JY9010000120121224.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void cpuConsumeErrorNoBusTest(){
@@ -191,11 +151,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20121227\\CX9010000120121227\\CW9010000120121227.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     @Test
@@ -207,11 +162,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\input\\20121226\\XF268800120121225\\JY268800120121225.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     @Test
@@ -224,11 +174,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\insertTest.txt");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void mCardConsumeReviseTest(){
@@ -241,11 +186,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20121226\\XF268800120121225\\CW001800120121225.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void mCardConsumeNoBusTest(){
@@ -256,11 +196,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\input\\20110309\\XF200430120110308\\JY200430120110308.txt");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void mCardConsumeErrorNoBusTest(){
@@ -271,11 +206,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\output\\20110309\\XF3901000120110309\\CW3901000120110309.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     /*****---------------------客服-------------------------------*****/
@@ -289,11 +219,6 @@ public class SqlLdrTest {
         File dataFile = new File("E:\\yct\\settleData\\input\\20121225\\KF2075000120121224\\JY2075000120121224.TXT");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
     @Test
     public void cpuCustomerServiceTest(){
@@ -304,16 +229,34 @@ public class SqlLdrTest {
         File dataFile = new File("");
         boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
-        if (b){
-            log.info("***********导入成功**********");
-        }else {
-            log.error("***********导入失败**********");
-        }
     }
 
     @Test
     public void ctlTest(){
         SqlLdr2.Execute();
+    }
+
+
+    @Test
+    public void merchantTest(){
+        String tableName = "T_MERCHANT_AREA";
+        String fieldNames = "(MERCHANT_CODE,MERCHANT_NAME,AREA_CODE)";
+        //控制文件
+        File contlFile = new File("E:\\sqlldrTest\\merchant.ctl");
+        File dataFile = new File("E:\\merchant.txt");
+        boolean b = SqlLdrUtil.insertBySqlLdr("root", "ml", "orcl",
+                tableName, fieldNames, contlFile, dataFile);
+    }
+
+    @Test
+    public void cardTest(){
+        String tableName = "T_CARD_AREA";
+        String fieldNames = "(START_NUM,END_NUM,AREA_CODE)";
+        //控制文件
+        File contlFile = new File("E:\\sqlldrTest\\card.ctl");
+        File dataFile = new File("E:\\card.txt");
+        boolean b = SqlLdrUtil.insertBySqlLdr("root", "ml", "orcl",
+                tableName, fieldNames, contlFile, dataFile);
     }
 
 }

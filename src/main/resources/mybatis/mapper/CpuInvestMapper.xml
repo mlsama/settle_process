@@ -9,7 +9,7 @@
           LCN, FCN, TF, FEE,
           BAL, TT, ATT, CRN,
           XRN, EPID, ETIM, LPID,
-          LTIM, TAC
+          LTIM, AREA,TAC
           FROM
           (
             SELECT
@@ -17,7 +17,7 @@
               LCN, FCN, TF, FEE,
               BAL, TT, ATT, CRN,
               XRN, EPID, ETIM, LPID,
-              LTIM, TAC,rownum r
+              LTIM, AREA,TAC,rownum r
             FROM T_CPU_INVEST
             WHERE FLAG = '1'
                   AND SETTLE_DATE=#{date,jdbcType=VARCHAR}

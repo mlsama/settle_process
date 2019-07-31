@@ -403,7 +403,7 @@ public class FileUtil {
                 FileUtil.closeWriter(bufferedWriter);
             }
         }else {
-            log.error("数据库没有数据，list集合为空,没有向文件{}写数据",file.getAbsolutePath());
+            log.info("数据库没有数据，list集合为空,没有向文件{}写数据",file.getAbsolutePath());
         }
     }
 

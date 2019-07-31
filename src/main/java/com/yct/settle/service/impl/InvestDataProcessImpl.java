@@ -2,6 +2,7 @@ package com.yct.settle.service.impl;
 
 import com.yct.settle.mapper.*;
 import com.yct.settle.pojo.*;
+import com.yct.settle.service.AreaService;
 import com.yct.settle.service.InvestDataProcess;
 import com.yct.settle.thread.ThreadTaskHandle;
 import com.yct.settle.utils.AmountUtil;
@@ -52,6 +53,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
     private ThreadTaskHandle threadTaskHandle;
     @Resource
     private FileCheckErrorMapper fileCheckErrorMapper;
+    @Resource
+    private AreaService areaService;
 
 
     /**
@@ -170,7 +173,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             //进入解压目录
                             unInZipFileDir = new File(inputDateDir, inZipFile.getName().substring(0, inZipFile.getName().indexOf(".")));
                             for (File inputFile : unInZipFileDir.listFiles()) {
-                                if (inputFile.getName().startsWith("JY")) {
+                                if (inputFile.getName().startsWith("JY") && inputFile.length() > 0) {
                                     targetFile = inputFile;
                                     break;
                                 }
@@ -197,40 +200,44 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         jy = unOutZipFile;
                     }
                 }
+                boolean checkJy = false;
+                String code = null;
+                String msg = null;
                 if (jy == null){
+                    checkJy = true;
+                    if (targetFile == null){
+                        code = "0000";
+                        msg = "input,output都没有JY文件或内容为空，无需处理";
+                        log.info(msg);
+                    }else {
+                        code = "6555";
+                        msg = "output没有JY文件或内容为空，但input的JY有数据";
+                        log.info(msg);
+                    }
+                }else {
+                    if (tempFile == null) { //input下没有一样的压缩文件
+                        checkJy = true;
+                        code = "6555";
+                        msg = "output的{}的JY文件有数据，input下没有对应的压缩文件";
+                        log.info(msg);
+                    }
+                    if (targetFile == null){
+                        checkJy = true;
+                        code = "6555";
+                        msg = "output的JY文件有数据，input压缩文件里没有JY文件";
+                        log.info(msg);
+                    }
+                }
+                if (checkJy){
                     resultMap.put("investProcessNextZipFile","yes");
-                    log.info("output的{}的JY文件没有数据，无需处理。",outZipFile.getAbsolutePath());
                     FileUtil.deleteFile(unOutZipFileDir);
                     FileUtil.deleteFile(unInZipFileDir);
                     //修改
                     processResultService.update(
-                            new FileProcessResult(outZipFile.getName(), null, new Date(),
-                                    "0000", "output的压缩文件里的JY文件没有数据，无需处理。"));
+                            new FileProcessResult(outZipFile.getName(), null, new Date(),code, msg));
                     return true;
-                }else {
-                    resultMap.put("investProcessNextZipFile","yes");
-                    if (tempFile == null) { //input下没有一样的压缩文件
-                        log.error("output的{}的JY文件有数据，input下没有对应的文件",outZipFile.getAbsolutePath());
-                        FileUtil.deleteFile(unOutZipFileDir);
-                        FileUtil.deleteFile(unInZipFileDir);
-                        //修改
-                        processResultService.update(
-                                new FileProcessResult(outZipFile.getName(), null, new Date(),
-                                        "6555", "output的充值文件有交易数据，input下没有对应的文件"));
-                        return true;
-                    }
-                    if (targetFile == null){
-                        resultMap.put("investProcessNextZipFile","yes");
-                        log.error("{}这个文件里没有JY文件", tempFile.getAbsolutePath());
-                        FileUtil.deleteFile(unOutZipFileDir);
-                        FileUtil.deleteFile(unInZipFileDir);
-                        //修改
-                        processResultService.update(
-                                new FileProcessResult(outZipFile.getName(), null, new Date(),
-                                        "6555", "input压缩文件里没有JY文件"));
-                        return true;
-                    }
                 }
+
                 //落库，校验
                 resultMap.put("investProcessNextZipFile","no");
                 for (File unOutZipFile : unOutZipFileDir.listFiles()) {
@@ -418,7 +425,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             "      LPID, LTIM, PID, TIM, " +
                             "      TF, BAL, TT, RN, " +
                             "      EPID, ETIM, AI, VC, " +
-                            "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                            "      TAC, APP constant '10', FLAG, ERRNO)";
                 }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvest.ctl");
@@ -489,7 +496,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             "      PSN constant '00000000', LCN, FCN, " +
                             "      LPID, LTIM, PID, TIM, " +
                             "      TF, BAL, TT, RN, " +
-                            "      APP constant 'FF', FLAG, ERRNO)";
+                            "      APP constant '10', FLAG, ERRNO)";
                 }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvestCheckBack.ctl");
@@ -510,7 +517,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             "      LPID, LTIM, PID, TIM, " +
                             "      TF, BAL, TT, RN, " +
                             "      EPID, ETIM, AI, VC, " +
-                            "      TAC, APP constant 'FF', FLAG, ERRNO)";
+                            "      TAC, APP constant '10', FLAG, ERRNO)";
                 }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvestReviseHis.ctl");
@@ -529,7 +536,7 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                             "      PSN constant '00000000', LCN, FCN, " +
                             "      LPID, LTIM, PID, TIM, " +
                             "      TF, BAL, TT, RN, " +
-                            "      APP constant 'FF', FLAG, ERRNO)";
+                            "      APP constant '10', FLAG, ERRNO)";
                 }
                 //控制文件
                 contlFile = new File(sqlldrDir,"mCardInvestCheckBackHis.ctl");
@@ -817,6 +824,9 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTrade.setQDATE(settleDate);
         cpuTrade.setQNAME(zipFileName);
         cpuTrade.setDMON("0000000000000");
+        cpuTrade.setUSEA(cpuInvest.getAREA()); //使用地
+        String issuea = areaService.getIssuesByCardNo(cpuInvest.getLCN());
+        cpuTrade.setISSUEA(issuea); //发行地
     }
     private void convertToCpuTrade(CpuInvestCheckBack cpuInvestCheckBack, CpuTrade cpuTrade, String settleDate, String zipFileName) {
         BeanUtils.copyProperties(cpuInvestCheckBack,cpuTrade);

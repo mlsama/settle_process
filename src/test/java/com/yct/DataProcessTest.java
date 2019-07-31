@@ -7,6 +7,7 @@ import com.yct.settle.mapper.MCardConsumeReviseMapper;
 import com.yct.settle.pojo.CpuConsume;
 import com.yct.settle.pojo.MCardConsume;
 import com.yct.settle.pojo.MCardConsumeRevise;
+import com.yct.settle.service.AreaService;
 import com.yct.settle.service.impl.InvestDataProcessImpl;
 import com.yct.settle.utils.AmountUtil;
 import org.junit.Test;
@@ -40,6 +41,8 @@ public class DataProcessTest {
     private MCardConsumeReviseMapper mCardConsumeReviseMapper;
     @Resource
     private InvestDataProcessImpl investDataProcess;
+    @Resource
+    private AreaService areaService;
     @Test
     public void ccProcessTest(){
         dataProcessManager.settleDataProcess();
@@ -106,6 +109,12 @@ public class DataProcessTest {
         String name = "CZ2031000320121223";
         File sqlldrDir = new File("E:\\sqlldrTest");
         //investDataProcess.batchInsert(inputDateDir, unzip,name,"SCOTT","ml","orcl",sqlldrDir,true, resultMap);
+    }
+
+    @Test
+    public void areaTest(){
+        String issues = areaService.getIssuesByCardNo("5100003556334963");
+        System.out.println(issues);
     }
 
 }
