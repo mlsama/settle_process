@@ -8,6 +8,7 @@ import com.yct.settle.service.CustomerServiceDataProcess;
 import com.yct.settle.service.ProcessResultService;
 import com.yct.settle.utils.FileUtil;
 import com.yct.settle.utils.SqlLdrUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -126,8 +127,13 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
         mCardTrade.setDT("03");//客服
         mCardTrade.setBINF("00000000000000000000");//备用信息
         mCardTrade.setQNAME(zipFileName);
-        mCardTrade.setUSEA(userArea);//使用地
         String issuea = areaService.getIssuesByCardNo(mCardCustomerService.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTrade.setUSEA(userArea);//使用地
         mCardTrade.setISSUEA(issuea); //发行地
     }
 
@@ -138,8 +144,13 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
         cpuTrade.setDT("03");//客服
         cpuTrade.setDMON("0000000000000");//扩展信息
         cpuTrade.setQNAME(zipFileName);
-        cpuTrade.setUSEA(userArea);//使用地
         String issuea = areaService.getIssuesByCardNo(cpuCustomerService.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        cpuTrade.setUSEA(userArea);//使用地
         cpuTrade.setISSUEA(issuea); //发行地
     }
 }

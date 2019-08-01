@@ -10,6 +10,7 @@ import com.yct.settle.utils.DateUtil;
 import com.yct.settle.utils.FileUtil;
 import com.yct.settle.utils.SqlLdrUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -757,8 +758,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTradeRevise.setEPID("00000000");
         mCardTradeRevise.setETIM("00000000000000");
         mCardTradeRevise.setTAC("00000000");
-        mCardTradeRevise.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(mCardInvestCheckBackHis.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTradeRevise.setUSEA(userArea);
         mCardTradeRevise.setISSUEA(issuea); //发行地
     }
     private void convertToMCardTradeRevise(MCardInvestReviseHis mCardInvestReviseHis, MCardTradeRevise mCardTradeRevise,
@@ -773,8 +779,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTradeRevise.setICN(mCardInvestReviseHis.getLCN());
         mCardTradeRevise.setFEE(new BigDecimal("0"));
         mCardTradeRevise.setBINF(mCardInvestReviseHis.getAPP()+"000000000000000000");
-        mCardTradeRevise.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(mCardInvestReviseHis.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTradeRevise.setUSEA(userArea);
         mCardTradeRevise.setISSUEA(issuea); //发行地
     }
 
@@ -791,8 +802,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTrade.setEPID("00000000");
         mCardTrade.setETIM("00000000000000");
         mCardTrade.setTAC("00000000");
-        mCardTrade.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(mCardInvestCheckBack.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTrade.setUSEA(userArea);
         mCardTrade.setISSUEA(issuea); //发行地
     }
     private void convertToMCardTrade(MCardInvest mCardInvest, MCardTrade mCardTrade, String settleDate, String zipFileName,String userArea) {
@@ -804,8 +820,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         mCardTrade.setICN(mCardInvest.getLCN());
         mCardTrade.setFEE(new BigDecimal("0"));
         mCardTrade.setBINF(mCardInvest.getAPP()+"000000000000000000");
-        mCardTrade.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(mCardInvest.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTrade.setUSEA(userArea);
         mCardTrade.setISSUEA(issuea); //发行地
     }
 
@@ -819,8 +840,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTradeRevise.setXT(cpuInvestReviseHis.getFLAG());
         cpuTradeRevise.setBINF(cpuInvestReviseHis.getAPP()+"000000000000000000");
         cpuTradeRevise.setDMON("0000000000000");
-        cpuTradeRevise.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(cpuInvestReviseHis.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        cpuTradeRevise.setUSEA(userArea);
         cpuTradeRevise.setISSUEA(issuea); //发行地
     }
     private void convertToCpuTradeRevise(CpuInvestCheckBackHis cpuInvestCheckBackHis, CpuTradeRevise cpuTradeRevise,
@@ -836,8 +862,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTradeRevise.setEPID("000000000000");
         cpuTradeRevise.setETIM("00000000000000");
         cpuTradeRevise.setTAC("00000000");
-        cpuTradeRevise.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(cpuInvestCheckBackHis.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        cpuTradeRevise.setUSEA(userArea);
         cpuTradeRevise.setISSUEA(issuea); //发行地
     }
 
@@ -847,9 +878,14 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTrade.setQDATE(settleDate);
         cpuTrade.setQNAME(zipFileName);
         cpuTrade.setDMON("0000000000000");
-        cpuTrade.setUSEA(userArea); //使用地
         String issuea = areaService.getIssuesByCardNo(cpuInvest.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
         cpuTrade.setISSUEA(issuea); //发行地
+        cpuTrade.setUSEA(userArea); //使用地
     }
     private void convertToCpuTrade(CpuInvestCheckBack cpuInvestCheckBack, CpuTrade cpuTrade, String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuInvestCheckBack,cpuTrade);
@@ -860,8 +896,13 @@ public class InvestDataProcessImpl implements InvestDataProcess {
         cpuTrade.setTAC("00000000");
         cpuTrade.setEPID("000000000000");
         cpuTrade.setETIM("00000000000000");
-        cpuTrade.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(cpuInvestCheckBack.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        cpuTrade.setUSEA(userArea);
         cpuTrade.setISSUEA(issuea); //发行地
     }
 

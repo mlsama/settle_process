@@ -9,8 +9,7 @@ import com.yct.settle.service.ProcessResultService;
 import com.yct.settle.thread.ThreadTaskHandle;
 import com.yct.settle.utils.*;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -257,7 +256,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                     FileUtil.deleteFile(unOutZipFileDir);
                     return insertFlag;
                 }else {
-                    log.error("{}没有JY文件,无需处理。",inZipFile.getAbsolutePath());
+                    log.info("{}没有JY文件,无需处理。",inZipFile.getAbsolutePath());
                     resultMap.put("consumeJyIsNull","yes");
                     FileUtil.deleteFile(unInZipFileDir);
                     FileUtil.deleteFile(unOutZipFileDir);
@@ -959,8 +958,13 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         mCardTradeRevise.setDSN(mCardConsumeRevise.getPSN());
         mCardTradeRevise.setICN(mCardConsumeRevise.getLCN());
         mCardTradeRevise.setBINF("00000000000000000000");//备用信息
-        mCardTradeRevise.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(mCardConsumeRevise.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTradeRevise.setUSEA(userArea);
         mCardTradeRevise.setISSUEA(issuea); //发行地
     }
 
@@ -987,8 +991,13 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         mCardTrade.setDT("02");//消费
         mCardTrade.setBINF("00000000000000000000");//备用信息
         mCardTrade.setQNAME(zipFileName);
-        mCardTrade.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(cardNo);
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        mCardTrade.setUSEA(userArea);
         mCardTrade.setISSUEA(issuea); //发行地
     }
 
@@ -1002,8 +1011,13 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         cpuTradeRevise.setBINF("00000000000000000000");//备用信息
         cpuTradeRevise.setQNAME(zipFileName);
         cpuTradeRevise.setXT(cpuConsumeRevise.getFLAG());
-        cpuTradeRevise.setUSEA(userArea);
         String issuea = areaService.getIssuesByCardNo(cpuConsumeRevise.getLCN());
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        cpuTradeRevise.setUSEA(userArea);
         cpuTradeRevise.setISSUEA(issuea); //发行地
     }
 
@@ -1023,8 +1037,13 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         cpuTrade.setTT("06");//消费
         cpuTrade.setDMON("0000000000000");//扩展信息
         cpuTrade.setQNAME(zipFileName);
-        cpuTrade.setUSEA(userArea); //使用地
         String issuea = areaService.getIssuesByCardNo(cardNo);
+        if (StringUtils.isBlank(userArea) && StringUtils.isNotBlank(issuea)){
+            userArea = issuea;
+        }else if (StringUtils.isBlank(issuea) && StringUtils.isNotBlank(userArea)){
+            issuea = userArea;
+        }
+        cpuTrade.setUSEA(userArea); //使用地
         cpuTrade.setISSUEA(issuea); //发行地
     }
 }
