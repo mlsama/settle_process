@@ -21,7 +21,7 @@
           FROM T_CPU_CONSUME_NOBUS t1
           WHERE NOT EXISTS (
             SELECT 1
-              FROM T_CPU_CONSUME_ERROR_NOBUS WHERE PID=t1.PID AND PSN=t1.PSN
+              FROM T_CPU_CONSUME_ERROR_NOBUS WHERE PID=t1.PID AND PSN=t1.PSN and TAC=t1.TAC
           ) AND <![CDATA[rownum <= #{endNum}]]>
             and SETTLE_DATE=#{date,jdbcType=VARCHAR}
             and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
@@ -34,7 +34,7 @@
       from T_CPU_CONSUME_NOBUS t1
         WHERE NOT EXISTS (
           SELECT 1
-            FROM T_CPU_CONSUME_ERROR_NOBUS WHERE PID=t1.PID AND PSN=t1.PSN
+            FROM T_CPU_CONSUME_ERROR_NOBUS WHERE PID=t1.PID AND PSN=t1.PSN and TAC=t1.TAC
         ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
           and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
     </select>
@@ -43,16 +43,16 @@
         SELECT count(1) from T_CPU_CONSUME_NOBUS t1
         WHERE NOT EXISTS (
           SELECT 1
-            FROM T_CPU_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN
+            FROM T_CPU_CONSUME_ERROR_NOBUS where t1.PID=PID AND t1.PSN=PSN and TAC=t1.TAC
         ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
       </select>
 
       <select id="findCwNotes" resultType="long">
           SELECT count(1) from
             (
-              SELECT PID,PSN FROM T_CPU_CONSUME_ERROR_NOBUS WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              SELECT PID,PSN,TAC FROM T_CPU_CONSUME_ERROR_NOBUS WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
               INTERSECT
-              SELECT PID,PSN FROM T_CPU_CONSUME_NOBUS WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              SELECT PID,PSN,TAC FROM T_CPU_CONSUME_NOBUS WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
             )
       </select>
 

@@ -9,8 +9,7 @@ import com.yct.settle.utils.AmountUtil;
 import com.yct.settle.utils.DateUtil;
 import com.yct.settle.utils.FileUtil;
 import com.yct.settle.utils.SqlLdrUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +27,8 @@ import java.util.Map;
  * 2019/6/28 9:46
  */
 @Service
+@Slf4j
 public class InvestDataProcessImpl implements InvestDataProcess {
-    //日记
-    private final Logger log = LoggerFactory.getLogger(InvestDataProcessImpl.class);
     @Resource
     private ProcessResultServiceImpl processResultService;
     @Resource

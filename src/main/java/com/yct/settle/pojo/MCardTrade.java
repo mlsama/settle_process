@@ -115,7 +115,7 @@ public class MCardTrade {
     private String FLAG;
 
     public String toString() {
-        return QDATE+'\t'+DT + '\t'+"01"+ '\t' + "01" + '\t'+ DSN + '\t'+ ICN + '\t'+ FCN + '\t'+ LPID + '\t'
+        return QDATE+'\t'+DT + '\t'+ISSUEA+ '\t' + USEA + '\t'+ DSN + '\t'+ ICN + '\t'+ FCN + '\t'+ LPID + '\t'
                 + LTIM + '\t'+ PID +'\t' + TIM +'\t' + AmountUtil.convertToString(TF, 8) +'\t' +
                 AmountUtil.convertToString(BAL, 8) + '\t' + AmountUtil.convertToString(FEE, 8) + '\t' +
                 TT +'\t' + RN +'\t' + "0000" + '\t' + "000" + '\t' + "000" + '\t' + "000" + '\t' + EPID + '\t' +

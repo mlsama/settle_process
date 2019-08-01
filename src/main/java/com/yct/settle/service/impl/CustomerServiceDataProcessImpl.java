@@ -3,6 +3,7 @@ package com.yct.settle.service.impl;
 import com.yct.settle.mapper.CpuCustomerServiceMapper;
 import com.yct.settle.mapper.MCardCustomerServiceMapper;
 import com.yct.settle.pojo.*;
+import com.yct.settle.service.AreaService;
 import com.yct.settle.service.CustomerServiceDataProcess;
 import com.yct.settle.service.ProcessResultService;
 import com.yct.settle.utils.FileUtil;
@@ -32,6 +33,8 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
     private MCardCustomerServiceMapper mCardCustomerServiceMapper;
     @Resource
     private ProcessResultService processResultService;
+    @Resource
+    private AreaService areaService;
 
     /**
      * 客服数据包的JY文件数据落库
@@ -82,12 +85,14 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
     @Override
     public boolean writerTODM(File dmmj, File dmcj, String settleDate, String zipFileName) {
         try {
+            //根据服务商代码确定卡使用地：USEA
+            String userArea = areaService.getUseAreaByMerchant(zipFileName);
             if (zipFileName.startsWith("CK")) { //cpu卡
                 ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
                 List<CpuCustomerService> customerServiceList = cpuCustomerServiceMapper.findList(settleDate,zipFileName);
                 for (CpuCustomerService cpuCustomerService : customerServiceList){
                     CpuTrade cpuTrade = new CpuTrade();
-                    convertToCpuTrade(cpuCustomerService,cpuTrade,settleDate,zipFileName);
+                    convertToCpuTrade(cpuCustomerService,cpuTrade,settleDate,zipFileName,userArea);
                     cpuTradeList.add(cpuTrade);
                 }
                 FileUtil.writeToFile(dmcj,cpuTradeList);
@@ -96,7 +101,7 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
                 List<MCardCustomerService> list = mCardCustomerServiceMapper.findList(settleDate,zipFileName);
                 for (MCardCustomerService mCardCustomerService : list){
                     MCardTrade mCardTrade = new MCardTrade();
-                    convertToMCardTrade(mCardCustomerService,mCardTrade,settleDate,zipFileName);
+                    convertToMCardTrade(mCardCustomerService,mCardTrade,settleDate,zipFileName,userArea);
                     mCardTradeList.add(mCardTrade);
                 }
                 FileUtil.writeToFile(dmmj,mCardTradeList);
@@ -112,7 +117,8 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
         }
     }
 
-    private void convertToMCardTrade(MCardCustomerService mCardCustomerService, MCardTrade mCardTrade, String settleDate, String zipFileName) {
+    private void convertToMCardTrade(MCardCustomerService mCardCustomerService, MCardTrade mCardTrade,
+                                     String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(mCardCustomerService,mCardTrade);
         mCardTrade.setDSN(mCardCustomerService.getPSN());
         mCardTrade.setICN(mCardCustomerService.getLCN());
@@ -120,13 +126,20 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
         mCardTrade.setDT("03");//客服
         mCardTrade.setBINF("00000000000000000000");//备用信息
         mCardTrade.setQNAME(zipFileName);
+        mCardTrade.setUSEA(userArea);//使用地
+        String issuea = areaService.getIssuesByCardNo(mCardCustomerService.getLCN());
+        mCardTrade.setISSUEA(issuea); //发行地
     }
 
-    private void convertToCpuTrade(CpuCustomerService cpuCustomerService, CpuTrade cpuTrade, String settleDate, String zipFileName) {
+    private void convertToCpuTrade(CpuCustomerService cpuCustomerService, CpuTrade cpuTrade,
+                                   String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuCustomerService,cpuTrade);
         cpuTrade.setQDATE(settleDate);
         cpuTrade.setDT("03");//客服
         cpuTrade.setDMON("0000000000000");//扩展信息
         cpuTrade.setQNAME(zipFileName);
+        cpuTrade.setUSEA(userArea);//使用地
+        String issuea = areaService.getIssuesByCardNo(cpuCustomerService.getLCN());
+        cpuTrade.setISSUEA(issuea); //发行地
     }
 }

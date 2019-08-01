@@ -2,11 +2,13 @@ package com.yct.settle.service.impl;
 
 import com.yct.settle.mapper.*;
 import com.yct.settle.pojo.*;
+import com.yct.settle.service.AreaService;
 import com.yct.settle.service.ConsumeDataProcess;
 import com.yct.settle.service.CustomerServiceDataProcess;
 import com.yct.settle.service.ProcessResultService;
 import com.yct.settle.thread.ThreadTaskHandle;
 import com.yct.settle.utils.*;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -23,8 +25,8 @@ import java.util.*;
  * 2019/7/2 11:41
  */
 @Service
+@Slf4j
 public class ConsumeDataProcessImpl implements ConsumeDataProcess {
-    private final Logger log = LoggerFactory.getLogger(ConsumeDataProcessImpl.class);
     @Resource
     private ProcessResultService processResultService;
     @Resource
@@ -51,6 +53,8 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
     private SettleAuditMapper settleAuditMapper;
     @Resource
     private FileCheckErrorMapper fileCheckErrorMapper;
+    @Resource
+    private AreaService areaService;
 
 
 
@@ -783,6 +787,8 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                                     String settleDate, String zipFileName, Boolean isBusFile) {
         try {
             log.info("从数据库取消费数据写到对应的dm文件");
+            //根据服务商代码确定卡使用地：USEA
+            String userArea = areaService.getUseAreaByMerchant(zipFileName);
             if (zipFileName.startsWith("CX")){ //cpu卡
                 ArrayList<CpuTrade> cpuTradeList = new ArrayList<>();
                 if (isBusFile){ //公交
@@ -804,7 +810,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             List<CpuConsume> cpuConsumeList = cpuConsumeMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
                             for (CpuConsume cpuConsume : cpuConsumeList){
                                 CpuTrade cpuTrade = new CpuTrade();
-                                convertToCpuTrade(cpuConsume,cpuTrade,settleDate,zipFileName);
+                                convertToCpuTrade(cpuConsume,cpuTrade,settleDate,zipFileName,userArea);
                                 cpuTradeList.add(cpuTrade);
                             }
                             FileUtil.writeToFile(dmcj,cpuTradeList);
@@ -820,7 +826,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         ArrayList<CpuTradeRevise> cpuTradeReviseList = new ArrayList<>();
                         for (CpuConsumeRevise cpuConsumeRevise : list){
                             CpuTradeRevise cpuTradeRevise = new CpuTradeRevise();
-                            convertToCpuTradeRevise(cpuConsumeRevise,cpuTradeRevise,settleDate,zipFileName);
+                            convertToCpuTradeRevise(cpuConsumeRevise,cpuTradeRevise,settleDate,zipFileName,userArea);
                             cpuTradeReviseList.add(cpuTradeRevise);
                         }
                         FileUtil.writeToFile(dmcx,cpuTradeReviseList);
@@ -844,7 +850,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             List<CpuConsumeNoBus> cpuConsumeNoBusList = cpuConsumeNoBusMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
                             for (CpuConsumeNoBus cpuConsumeNoBus : cpuConsumeNoBusList){
                                 CpuTrade cpuTrade = new CpuTrade();
-                                convertToCpuTrade(cpuConsumeNoBus,cpuTrade,settleDate,zipFileName);
+                                convertToCpuTrade(cpuConsumeNoBus,cpuTrade,settleDate,zipFileName,userArea);
                                 cpuTradeList.add(cpuTrade);
                             }
                             FileUtil.writeToFile(dmcj,cpuTradeList);
@@ -876,7 +882,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             List<MCardConsume> mCardConsumeList = mCardConsumeMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
                             for (MCardConsume mCardConsume : mCardConsumeList){
                                 MCardTrade mCardTrade = new MCardTrade();
-                                convertToMCardTrade(mCardConsume,mCardTrade,settleDate,zipFileName);
+                                convertToMCardTrade(mCardConsume,mCardTrade,settleDate,zipFileName,userArea);
                                 mCardTradeList.add(mCardTrade);
                             }
                             FileUtil.writeToFile(dmmj,mCardTradeList);
@@ -893,7 +899,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         ArrayList<MCardTradeRevise> mCardTradeReviseList = new ArrayList<>();
                         for (MCardConsumeRevise mCardConsumeRevise : reviseList){
                             MCardTradeRevise mCardTradeRevise = new MCardTradeRevise();
-                            convertToMCardTradeRevise(mCardConsumeRevise,mCardTradeRevise,settleDate,zipFileName);
+                            convertToMCardTradeRevise(mCardConsumeRevise,mCardTradeRevise,settleDate,zipFileName,userArea);
                             mCardTradeReviseList.add(mCardTradeRevise);
                         }
                         FileUtil.writeToFile(dmmx,mCardTradeReviseList);
@@ -917,7 +923,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                             List<MCardConsumeNoBus> list = mCardConsumeNoBusMapper.findByWhere(startNum,endNum,settleDate,zipFileName);
                             for (MCardConsumeNoBus mCardConsumeNoBus : list){
                                 MCardTrade mCardTrade = new MCardTrade();
-                                convertToMCardTrade(mCardConsumeNoBus,mCardTrade,settleDate,zipFileName);
+                                convertToMCardTrade(mCardConsumeNoBus,mCardTrade,settleDate,zipFileName,userArea);
                                 mCardTradeList.add(mCardTrade);
                             }
                             FileUtil.writeToFile(dmmj,mCardTradeList);
@@ -941,7 +947,8 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
     }
 
 
-    private void convertToMCardTradeRevise(MCardConsumeRevise mCardConsumeRevise, MCardTradeRevise mCardTradeRevise, String settleDate, String zipFileName) {
+    private void convertToMCardTradeRevise(MCardConsumeRevise mCardConsumeRevise, MCardTradeRevise mCardTradeRevise,
+                                           String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(mCardConsumeRevise,mCardTradeRevise);
         mCardTradeRevise.setQDATE(settleDate);
         mCardTradeRevise.setQNAME(zipFileName);
@@ -952,14 +959,19 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         mCardTradeRevise.setDSN(mCardConsumeRevise.getPSN());
         mCardTradeRevise.setICN(mCardConsumeRevise.getLCN());
         mCardTradeRevise.setBINF("00000000000000000000");//备用信息
+        mCardTradeRevise.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(mCardConsumeRevise.getLCN());
+        mCardTradeRevise.setISSUEA(issuea); //发行地
     }
 
-    private void convertToMCardTrade(Object object, MCardTrade mCardTrade, String settleDate, String zipFileName) {
+    private void convertToMCardTrade(Object object, MCardTrade mCardTrade, String settleDate, String zipFileName,String userArea) {
+        String cardNo = null;
         if (object instanceof MCardConsume){
             MCardConsume mCardConsume = (MCardConsume) object;
             BeanUtils.copyProperties(mCardConsume,mCardTrade);
             mCardTrade.setDSN(mCardConsume.getPSN());
             mCardTrade.setICN(mCardConsume.getLCN());
+            cardNo = mCardConsume.getLCN();
         }else if (object instanceof MCardConsumeNoBus){
             MCardConsumeNoBus mCardConsumeNoBus = (MCardConsumeNoBus) object;
             BeanUtils.copyProperties(mCardConsumeNoBus,mCardTrade);
@@ -969,14 +981,19 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
             mCardTrade.setBDCT("000");
             mCardTrade.setMDCT("000");
             mCardTrade.setUDCT("000");
+            cardNo = mCardConsumeNoBus.getLCN();
         }
         mCardTrade.setQDATE(settleDate);
         mCardTrade.setDT("02");//消费
         mCardTrade.setBINF("00000000000000000000");//备用信息
         mCardTrade.setQNAME(zipFileName);
+        mCardTrade.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(cardNo);
+        mCardTrade.setISSUEA(issuea); //发行地
     }
 
-    private void convertToCpuTradeRevise(CpuConsumeRevise cpuConsumeRevise, CpuTradeRevise cpuTradeRevise, String settleDate, String zipFileName) {
+    private void convertToCpuTradeRevise(CpuConsumeRevise cpuConsumeRevise, CpuTradeRevise cpuTradeRevise,
+                                         String settleDate, String zipFileName,String userArea) {
         BeanUtils.copyProperties(cpuConsumeRevise,cpuTradeRevise);
         cpuTradeRevise.setQDATE(settleDate);
         cpuTradeRevise.setLTIME(DateUtil.getTomorrow(cpuConsumeRevise.getTIM()));
@@ -985,21 +1002,29 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         cpuTradeRevise.setBINF("00000000000000000000");//备用信息
         cpuTradeRevise.setQNAME(zipFileName);
         cpuTradeRevise.setXT(cpuConsumeRevise.getFLAG());
-
+        cpuTradeRevise.setUSEA(userArea);
+        String issuea = areaService.getIssuesByCardNo(cpuConsumeRevise.getLCN());
+        cpuTradeRevise.setISSUEA(issuea); //发行地
     }
 
-    private void convertToCpuTrade(Object object, CpuTrade cpuTrade,String settleDate, String zipFileName) {
+    private void convertToCpuTrade(Object object, CpuTrade cpuTrade,String settleDate, String zipFileName,String userArea) {
+        String cardNo = null;
         if (object instanceof CpuConsume){
             CpuConsume cpuConsume = (CpuConsume) object;
             BeanUtils.copyProperties(cpuConsume,cpuTrade);
+            cardNo = cpuConsume.getLCN();
         }else if (object instanceof CpuConsumeNoBus){
             CpuConsumeNoBus cpuConsumeNoBus = (CpuConsumeNoBus) object;
             BeanUtils.copyProperties(cpuConsumeNoBus,cpuTrade);
+            cardNo = cpuConsumeNoBus.getLCN();
         }
         cpuTrade.setQDATE(settleDate);
         cpuTrade.setDT("02");//消费
         cpuTrade.setTT("06");//消费
         cpuTrade.setDMON("0000000000000");//扩展信息
         cpuTrade.setQNAME(zipFileName);
+        cpuTrade.setUSEA(userArea); //使用地
+        String issuea = areaService.getIssuesByCardNo(cardNo);
+        cpuTrade.setISSUEA(issuea); //发行地
     }
 }
