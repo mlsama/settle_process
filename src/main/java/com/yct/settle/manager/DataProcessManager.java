@@ -2,6 +2,7 @@ package com.yct.settle.manager;
 
 import com.yct.settle.mapper.FileProcessResultMapper;
 import com.yct.settle.pojo.CountData;
+import com.yct.settle.pojo.CustomerService;
 import com.yct.settle.pojo.DmRz;
 import com.yct.settle.pojo.ProcessResult;
 import com.yct.settle.service.ConsumeDataProcess;
@@ -172,21 +173,44 @@ public class DataProcessManager {
                     if (reviseDate == null){
                         reviseDate = new CountData();
                     }
-                    //汇总客服数据
-                    CountData customerDate = fileProcessResultMapper.countCustomerDate(dateDir.getName());
-                    if (customerDate == null){
-                        customerDate = new CountData();
+                    //汇总cpu充值修正数据
+                    CountData cpuInvestReviseDate = fileProcessResultMapper.countCpuInvestReviseDate(dateDir.getName());
+                    if (cpuInvestReviseDate == null){
+                        cpuInvestReviseDate = new CountData();
                     }
+                    //汇总cpu消费修正数据
+                    CountData cpuConsumerReviseDate = fileProcessResultMapper.countCpuConsumerReviseDate(dateDir.getName());
+                    if (cpuConsumerReviseDate == null){
+                        cpuConsumerReviseDate = new CountData();
+                    }
+                    //汇总m1充值修正数据
+                    CountData mCardInvestReviseDate = fileProcessResultMapper.countMCardInvestReviseDate(dateDir.getName());
+                    if (mCardInvestReviseDate == null){
+                        mCardInvestReviseDate = new CountData();
+                    }
+                    //汇总m1消费修正数据
+                    CountData mCardConsumerReviseDate = fileProcessResultMapper.countMCardConsumerReviseDate(dateDir.getName());
+                    if (mCardConsumerReviseDate == null){
+                        mCardConsumerReviseDate = new CountData();
+                    }
+
                     //汇总cpu客服数据
-                    CountData cpuCustomerDate = fileProcessResultMapper.countCpuCustomerDate(dateDir.getName());
+                    CustomerService cpuCustomerDate = fileProcessResultMapper.countCpuCustomerDate(dateDir.getName());
                     if (cpuCustomerDate == null){
-                        cpuCustomerDate = new CountData();
+                        cpuCustomerDate = new CustomerService();
                     }
                     //汇总m1客服数据
-                    CountData mCardCustomerDate = fileProcessResultMapper.countMCardCustomerDate(dateDir.getName());
+                    CustomerService mCardCustomerDate = fileProcessResultMapper.countMCardCustomerDate(dateDir.getName());
                     if (mCardCustomerDate == null){
-                        mCardCustomerDate = new CountData();
+                        mCardCustomerDate = new CustomerService();
                     }
+                    long cpuCustomerNotes = cpuCustomerDate.getCpuCustomerInvestNotes()+cpuCustomerDate.getCpuCustomerConsumerNotes();
+                    BigDecimal cpuCustomerAmount = AmountUtil.add(cpuCustomerDate.getCpuCustomerInvestAmount(),cpuCustomerDate.getCpuCustomerConsumerAmount());
+                    long mCardCustomerNotes = mCardCustomerDate.getMCardCustomerInvestNotes()+mCardCustomerDate.getCpuCustomerConsumerNotes();
+                    BigDecimal mCardCustomerAmount = AmountUtil.add(mCardCustomerDate.getMCardCustomerInvestAmount(),mCardCustomerDate.getMCardCustomerConsumerAmount());
+                    long customerNotes = cpuCustomerNotes + mCardCustomerNotes;
+                    BigDecimal customerAmount = AmountUtil.add(cpuCustomerAmount,mCardCustomerAmount);
+
                     //cpu卡汇总数据
                     CountData cpuDate = fileProcessResultMapper.countCpuDate(dateDir.getName());
                     if (cpuDate == null){
@@ -197,31 +221,50 @@ public class DataProcessManager {
                     if (mCardDate == null){
                         mCardDate = new CountData();
                     }
-                    long totalNotes = investDate.getNotesSum() + consumeDate.getNotesSum();
-                    BigDecimal totalAmount = AmountUtil.add(investDate.getAmountSum(), consumeDate.getAmountSum());
+                    //充值+消费+修正
+                    long totalNotes = investDate.getNotesSum() + consumeDate.getNotesSum() + reviseDate.getNotesSum();
+                    BigDecimal totalAmount = AmountUtil.adds(investDate.getAmountSum(), consumeDate.getAmountSum(),reviseDate.getAmountSum());
+                    //充值=充值+充值修正
+                    long investNotes = investDate.getNotesSum() + cpuInvestReviseDate.getNotesSum() + mCardInvestReviseDate.getNotesSum();
+                    BigDecimal investAmount = AmountUtil.adds(investDate.getAmountSum(),cpuInvestReviseDate.getAmountSum(),mCardInvestReviseDate.getAmountSum());
+                    //cpu充值
+                    long cpuInvestNotes = cpuDate.getInvestNotes() + cpuInvestReviseDate.getNotesSum();
+                    BigDecimal cpuInvestAmount = AmountUtil.add(cpuDate.getInvestAmount(),cpuInvestReviseDate.getAmountSum());
+                    //m1充值
+                    long mCardInvestNotes = mCardDate.getInvestNotes() + mCardInvestReviseDate.getNotesSum();
+                    BigDecimal mCardInvestAmount = AmountUtil.add(mCardDate.getInvestAmount(),mCardInvestReviseDate.getAmountSum());
+                    //消费=消费+消费修正(cpu消费修正，m1消费修正)
+                    long consumerNotes = consumeDate.getNotesSum() + cpuConsumerReviseDate.getNotesSum() + mCardConsumerReviseDate.getNotesSum();
+                    BigDecimal consumerAmount = AmountUtil.adds(consumeDate.getConsumeAmount(),cpuInvestReviseDate.getAmountSum(),mCardInvestReviseDate.getAmountSum());
+                    //cpu消费
+                    long cpuConsumerNotes = cpuDate.getConsumeNotes() + cpuConsumerReviseDate.getNotesSum();
+                    BigDecimal cpuConsumerAmount = AmountUtil.add(cpuDate.getConsumeAmount(),cpuConsumerReviseDate.getAmountSum());
+                    //m1消费
+                    long mCardConsumerNotes = mCardDate.getConsumeNotes() + mCardInvestReviseDate.getNotesSum();
+                    BigDecimal mCardConsumerAmount = AmountUtil.add(mCardDate.getConsumeAmount(),mCardInvestReviseDate.getAmountSum());
                     log.info("{}日结算情况如下：总笔数：{}，总金额：{}。充值总笔数：{}，充值总金额：{}。其中cpu卡充值笔数：{}，充值金额：{}。" +
                                     "m1卡充值笔数：{}，充值金额：{}。消费总笔数：{}，消费总金额：{}。其中cpu卡消费笔数：{}，消费金额：{}。" +
                                     "m1卡消费笔数：{}，消费金额：{}。",
-                            dateDir.getName(),totalNotes,totalAmount,investDate.getNotesSum(),investDate.getAmountSum(),cpuDate.getInvestNotes(),
-                            cpuDate.getInvestAmount(),mCardDate.getInvestNotes(),mCardDate.getInvestAmount(),consumeDate.getNotesSum(),
-                            consumeDate.getAmountSum(),cpuDate.getConsumeNotes(),cpuDate.getConsumeAmount(),
-                            mCardDate.getConsumeNotes(),mCardDate.getConsumeAmount());
+                            dateDir.getName(),totalNotes,totalAmount,investNotes,investAmount,cpuInvestNotes,
+                            cpuInvestAmount,mCardInvestNotes,mCardInvestAmount,consumerNotes,
+                            consumerAmount,cpuConsumerNotes,cpuConsumerAmount,
+                            mCardConsumerNotes,mCardConsumerAmount);
                     //写入处理结果表
                     ProcessResult processResult = new ProcessResult(
-                            dateDir.getName(),startTime,new Date(),"0000","处理成功",totalNotes,totalAmount,investDate.getNotesSum(),
-                            investDate.getAmountSum(),cpuDate.getInvestNotes(), cpuDate.getInvestAmount(),mCardDate.getInvestNotes(),
-                            mCardDate.getInvestAmount(),consumeDate.getNotesSum(),consumeDate.getAmountSum(),cpuDate.getConsumeNotes(),
-                            cpuDate.getConsumeAmount(), mCardDate.getConsumeNotes(), mCardDate.getConsumeAmount(),customerDate.getNotesSum(),
-                            customerDate.getAmountSum(),cpuCustomerDate.getNotesSum(), cpuCustomerDate.getAmountSum(),mCardCustomerDate.getNotesSum(),
-                            mCardCustomerDate.getAmountSum(),reviseDate.getNotesSum(), reviseDate.getAmountSum(),cpuDate.getReviseNotes(),
+                            dateDir.getName(),startTime,new Date(),"0000","处理成功",totalNotes,totalAmount,investNotes,
+                            investAmount,cpuInvestNotes, cpuInvestAmount,mCardInvestNotes,
+                            mCardInvestAmount,consumerNotes,consumerAmount,cpuConsumerNotes,
+                            cpuConsumerAmount, mCardConsumerNotes,mCardConsumerAmount,customerNotes,
+                            customerAmount,cpuCustomerNotes, cpuCustomerAmount,mCardCustomerNotes,mCardCustomerAmount,
+                            reviseDate.getNotesSum(), reviseDate.getAmountSum(),cpuDate.getReviseNotes(),
                             cpuDate.getReviseAmount(),mCardDate.getReviseNotes(),mCardDate.getReviseAmount());
                     processResultService.delAndInsert(processResult);
 
                     //写入dmrz
                     ArrayList<DmRz> dmRzs = new ArrayList<>();
-                    dmRzs.add(new DmRz(dmmj.getName(),mCardDate.getConsumeNotes()+mCardDate.getInvestNotes()));
+                    dmRzs.add(new DmRz(dmmj.getName(),mCardInvestNotes+mCardConsumerNotes));
                     dmRzs.add(new DmRz(dmmx.getName(),mCardDate.getReviseNotes()));
-                    dmRzs.add(new DmRz(dmcj.getName(),cpuDate.getConsumeNotes()+cpuDate.getInvestNotes()));
+                    dmRzs.add(new DmRz(dmcj.getName(),cpuInvestNotes+cpuConsumerNotes));
                     dmRzs.add(new DmRz(dmcx.getName(),cpuDate.getReviseNotes()));
                     dmRzs.add(new DmRz(dmfk.getName(),0));
                     FileUtil.writeToFile(dmrz,dmRzs);

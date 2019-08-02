@@ -47,8 +47,11 @@ public class AmountUtil {
      * @return
      */
     public static BigDecimal adds(BigDecimal ... v){
-        BigDecimal result = v[0];
-        for(int i = 1; i < v.length; i++){
+        BigDecimal result = new BigDecimal("0");
+        for(int i = 0; i < v.length; i++){
+            if (v[i] == null){
+                v[i] = new BigDecimal("0");
+            }
             result = result.add(v[i]);
         }
         return result;

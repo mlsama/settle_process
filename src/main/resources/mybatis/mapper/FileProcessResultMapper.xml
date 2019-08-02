@@ -153,20 +153,46 @@
               and RESULT_CODE in('0000','0030')
     </select>
 
-    <select id="countCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
-        SELECT sum(INVEST_NOTES)+sum(CONSUME_NOTES) AS notesSum,sum(INVEST_AMOUNT)+sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+    <select id="countCpuInvestReviseDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(REVISE_NOTES) AS notesSum,sum(REVISE_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
         WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
-              and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE ='03'
+              and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE = '01' and CARD_TYPE='01'
     </select>
 
-    <select id="countCpuCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
-        SELECT sum(INVEST_NOTES)+sum(CONSUME_NOTES) AS notesSum,sum(INVEST_AMOUNT)+sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+    <select id="countCpuConsumerReviseDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(REVISE_NOTES) AS notesSum,sum(REVISE_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE = '02' and CARD_TYPE='01'
+    </select>
+
+    <select id="countMCardInvestReviseDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(REVISE_NOTES) AS notesSum,sum(REVISE_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE = '01' and CARD_TYPE='02'
+    </select>
+
+    <select id="countMCardConsumerReviseDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
+        SELECT sum(REVISE_NOTES) AS notesSum,sum(REVISE_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+        WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
+              and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE = '02' and CARD_TYPE='02'
+    </select>
+
+    <select id="countCpuCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CustomerService">
+        SELECT sum(INVEST_NOTES) AS cpuCustomerInvestNotes,
+               sum(INVEST_AMOUNT) AS cpuCustomerInvestAmount,
+               sum(CONSUME_NOTES) AS cpuCustomerConsumerNotes,
+               sum(CONSUME_AMOUNT) AS cpuCustomerConsumerAmount
+        from T_FILE_PROCESS_RESULT
         WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
               and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE ='03' and CARD_TYPE='01'
     </select>
 
-    <select id="countMCardCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CountData">
-        SELECT sum(INVEST_NOTES)+sum(CONSUME_NOTES) AS notesSum,sum(INVEST_AMOUNT)+sum(CONSUME_AMOUNT) AS amountSum from T_FILE_PROCESS_RESULT
+    <select id="countMCardCustomerDate" parameterType="string" resultType="com.yct.settle.pojo.CustomerService">
+       SELECT sum(INVEST_NOTES) AS mCardCustomerInvestNotes,
+               sum(INVEST_AMOUNT) AS mCardCustomerInvestAmount,
+               sum(CONSUME_NOTES) AS mCardCustomerConsumerNotes,
+               sum(CONSUME_AMOUNT) AS mCardCustomerConsumerAmount
+        from T_FILE_PROCESS_RESULT
         WHERE  SETTLE_DATE = #{date,jdbcType=VARCHAR}
               and RESULT_CODE in('0000','0030') and ZIP_FILE_TYPE ='03' and CARD_TYPE='02'
     </select>
