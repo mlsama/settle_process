@@ -11,6 +11,7 @@ import com.yct.settle.service.impl.ProcessResultServiceImpl;
 import com.yct.settle.thread.ThreadTaskHandle;
 import com.yct.settle.utils.AmountUtil;
 import com.yct.settle.utils.FileUtil;
+import com.yct.settle.utils.MathUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -204,11 +205,15 @@ public class DataProcessManager {
                     if (mCardCustomerDate == null){
                         mCardCustomerDate = new CustomerService();
                     }
-                    long cpuCustomerNotes = cpuCustomerDate.getCpuCustomerInvestNotes()+cpuCustomerDate.getCpuCustomerConsumerNotes();
-                    BigDecimal cpuCustomerAmount = AmountUtil.add(cpuCustomerDate.getCpuCustomerInvestAmount(),cpuCustomerDate.getCpuCustomerConsumerAmount());
-                    long mCardCustomerNotes = mCardCustomerDate.getMCardCustomerInvestNotes()+mCardCustomerDate.getCpuCustomerConsumerNotes();
-                    BigDecimal mCardCustomerAmount = AmountUtil.add(mCardCustomerDate.getMCardCustomerInvestAmount(),mCardCustomerDate.getMCardCustomerConsumerAmount());
-                    long customerNotes = cpuCustomerNotes + mCardCustomerNotes;
+                    long cpuCustomerNotes = MathUtil.longAdd(cpuCustomerDate.getCpuCustomerInvestNotes(),
+                                                                                cpuCustomerDate.getCpuCustomerConsumerNotes());
+                    BigDecimal cpuCustomerAmount = AmountUtil.add(cpuCustomerDate.getCpuCustomerInvestAmount(),
+                                                                                cpuCustomerDate.getCpuCustomerConsumerAmount());
+                    long mCardCustomerNotes = MathUtil.longAdd(mCardCustomerDate.getMCardCustomerInvestNotes(),
+                                                                                mCardCustomerDate.getMCardCustomerConsumerNotes());
+                    BigDecimal mCardCustomerAmount = AmountUtil.add(mCardCustomerDate.getMCardCustomerInvestAmount(),
+                                                                                mCardCustomerDate.getMCardCustomerConsumerAmount());
+                    long customerNotes = MathUtil.longAdd(cpuCustomerNotes , mCardCustomerNotes);
                     BigDecimal customerAmount = AmountUtil.add(cpuCustomerAmount,mCardCustomerAmount);
 
                     //cpu卡汇总数据
@@ -222,26 +227,30 @@ public class DataProcessManager {
                         mCardDate = new CountData();
                     }
                     //充值+消费+修正
-                    long totalNotes = investDate.getNotesSum() + consumeDate.getNotesSum() + reviseDate.getNotesSum();
+                    long totalNotes = MathUtil.longAdd(investDate.getNotesSum(),consumeDate.getNotesSum(),reviseDate.getNotesSum());
                     BigDecimal totalAmount = AmountUtil.adds(investDate.getAmountSum(), consumeDate.getAmountSum(),reviseDate.getAmountSum());
                     //充值=充值+充值修正
-                    long investNotes = investDate.getNotesSum() + cpuInvestReviseDate.getNotesSum() + mCardInvestReviseDate.getNotesSum();
-                    BigDecimal investAmount = AmountUtil.adds(investDate.getAmountSum(),cpuInvestReviseDate.getAmountSum(),mCardInvestReviseDate.getAmountSum());
+                    long investNotes = MathUtil.longAdd(investDate.getNotesSum(),cpuInvestReviseDate.getNotesSum(),
+                                                                                        mCardInvestReviseDate.getNotesSum());
+                    BigDecimal investAmount = AmountUtil.adds(investDate.getAmountSum(),cpuInvestReviseDate.getAmountSum(),
+                                                                                        mCardInvestReviseDate.getAmountSum());
                     //cpu充值
-                    long cpuInvestNotes = cpuDate.getInvestNotes() + cpuInvestReviseDate.getNotesSum();
+                    long cpuInvestNotes = MathUtil.longAdd(cpuDate.getInvestNotes() ,cpuInvestReviseDate.getNotesSum());
                     BigDecimal cpuInvestAmount = AmountUtil.add(cpuDate.getInvestAmount(),cpuInvestReviseDate.getAmountSum());
                     //m1充值
-                    long mCardInvestNotes = mCardDate.getInvestNotes() + mCardInvestReviseDate.getNotesSum();
+                    long mCardInvestNotes = MathUtil.longAdd(mCardDate.getInvestNotes(),mCardInvestReviseDate.getNotesSum());
                     BigDecimal mCardInvestAmount = AmountUtil.add(mCardDate.getInvestAmount(),mCardInvestReviseDate.getAmountSum());
                     //消费=消费+消费修正(cpu消费修正，m1消费修正)
-                    long consumerNotes = consumeDate.getNotesSum() + cpuConsumerReviseDate.getNotesSum() + mCardConsumerReviseDate.getNotesSum();
-                    BigDecimal consumerAmount = AmountUtil.adds(consumeDate.getConsumeAmount(),cpuInvestReviseDate.getAmountSum(),mCardInvestReviseDate.getAmountSum());
+                    long consumerNotes = MathUtil.longAdd(consumeDate.getNotesSum(),cpuConsumerReviseDate.getNotesSum(),
+                                                    mCardConsumerReviseDate.getNotesSum());
+                    BigDecimal consumerAmount = AmountUtil.adds(consumeDate.getAmountSum(),cpuConsumerReviseDate.getAmountSum(),
+                                                    mCardConsumerReviseDate.getAmountSum());
                     //cpu消费
-                    long cpuConsumerNotes = cpuDate.getConsumeNotes() + cpuConsumerReviseDate.getNotesSum();
+                    long cpuConsumerNotes = MathUtil.longAdd(cpuDate.getConsumeNotes(),cpuConsumerReviseDate.getNotesSum());
                     BigDecimal cpuConsumerAmount = AmountUtil.add(cpuDate.getConsumeAmount(),cpuConsumerReviseDate.getAmountSum());
                     //m1消费
-                    long mCardConsumerNotes = mCardDate.getConsumeNotes() + mCardInvestReviseDate.getNotesSum();
-                    BigDecimal mCardConsumerAmount = AmountUtil.add(mCardDate.getConsumeAmount(),mCardInvestReviseDate.getAmountSum());
+                    long mCardConsumerNotes = MathUtil.longAdd(mCardDate.getConsumeNotes(), mCardConsumerReviseDate.getNotesSum());
+                    BigDecimal mCardConsumerAmount = AmountUtil.add(mCardDate.getConsumeAmount(),mCardConsumerReviseDate.getAmountSum());
                     log.info("{}日结算情况如下：总笔数：{}，总金额：{}。充值总笔数：{}，充值总金额：{}。其中cpu卡充值笔数：{}，充值金额：{}。" +
                                     "m1卡充值笔数：{}，充值金额：{}。消费总笔数：{}，消费总金额：{}。其中cpu卡消费笔数：{}，消费金额：{}。" +
                                     "m1卡消费笔数：{}，消费金额：{}。",
@@ -262,9 +271,9 @@ public class DataProcessManager {
 
                     //写入dmrz
                     ArrayList<DmRz> dmRzs = new ArrayList<>();
-                    dmRzs.add(new DmRz(dmmj.getName(),mCardInvestNotes+mCardConsumerNotes));
+                    dmRzs.add(new DmRz(dmmj.getName(),MathUtil.longAdd(mCardInvestNotes,mCardConsumerNotes)));
                     dmRzs.add(new DmRz(dmmx.getName(),mCardDate.getReviseNotes()));
-                    dmRzs.add(new DmRz(dmcj.getName(),cpuInvestNotes+cpuConsumerNotes));
+                    dmRzs.add(new DmRz(dmcj.getName(),MathUtil.longAdd(cpuInvestNotes,cpuConsumerNotes)));
                     dmRzs.add(new DmRz(dmcx.getName(),cpuDate.getReviseNotes()));
                     dmRzs.add(new DmRz(dmfk.getName(),0));
                     FileUtil.writeToFile(dmrz,dmRzs);

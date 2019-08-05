@@ -289,6 +289,14 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
         }
     }
 
+    /**
+     * 校验，统计消费，客服文件内容
+     * @param inZipFileName
+     * @param isBusFile
+     * @param date
+     * @param resultMap
+     * @return
+     */
     private boolean auditAndCount(String inZipFileName, boolean isBusFile, String date, Map<String, String> resultMap) {
         long investNotes = 0L;
         BigDecimal investAmount = new BigDecimal("0");

@@ -2,6 +2,7 @@ package com.yct.settle.utils;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import java.math.BigDecimal;
 
 /**
  * DESC:
@@ -114,5 +115,16 @@ public class MathUtil {
                 d = Double.parseDouble(str);
             }
             return d;
+        }
+
+        public static long longAdd(Object ... v){
+            long result = 0L;
+            for(int i = 0; i < v.length; i++){
+                if (v[i] == null){
+                    v[i] = 0L;
+                }
+                result = result + (long)v[i];
+            }
+            return result;
         }
 }
