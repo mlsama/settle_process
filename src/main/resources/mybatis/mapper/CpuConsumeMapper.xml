@@ -19,12 +19,14 @@
             XRN, EPID, ETIM, LPID,
             LTIM,TAC,rownum r
             FROM T_CPU_CONSUME t1
-            WHERE NOT EXISTS (
+            WHERE
+              SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              AND <![CDATA[rownum <= #{endNum}]]>
+              AND NOT EXISTS (
               SELECT 1
                  FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN and TAC=t1.TAC
-            ) AND <![CDATA[rownum <= #{endNum}]]>
-              AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
-              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+            )
         ) WHERE <![CDATA[r > #{startNum}]]>
 
     </select>
@@ -32,20 +34,22 @@
     <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
       SELECT count(1) AS notesSum,sum(TF) AS amountSum
       from T_CPU_CONSUME t1
-        WHERE NOT EXISTS (
-          SELECT 1
-             FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN and TAC=t1.TAC
-        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
-          AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              AND NOT EXISTS (
+                  SELECT 1
+                     FROM T_CPU_CONSUME_ERROR WHERE PID=t1.PID AND PSN=t1.PSN and TAC=t1.TAC
+                )
     </select>
 
     <select id="findAllNotes" resultType="long">
         SELECT count(1) from T_CPU_CONSUME t1
-        WHERE NOT EXISTS (
-        SELECT 1
-        FROM T_CPU_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN and TAC=t1.TAC
-        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
-          AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              AND NOT EXISTS (
+                SELECT 1
+                FROM T_CPU_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN and TAC=t1.TAC
+                )
     </select>
 
     <select id="findCwNotes" resultType="long">

@@ -17,12 +17,13 @@
             TF, BAL, FEE,TT,
             RN, EPID, ETIM,TAC,rownum r
             FROM T_MCARD_CONSUME t1
-            WHERE NOT EXISTS (
+            WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              AND <![CDATA[rownum <= #{endNum}]]>
+              and NOT EXISTS (
               SELECT 1
                 FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-            ) AND <![CDATA[rownum <= #{endNum}]]>
-              and SETTLE_DATE=#{date,jdbcType=VARCHAR}
-              and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+            )
         ) WHERE <![CDATA[r > #{startNum}]]>
 
     </select>
@@ -30,19 +31,22 @@
     <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
       SELECT count(1) AS notesSum,sum(TF) AS amountSum
       from T_MCARD_CONSUME t1
-        WHERE NOT EXISTS (
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
+          and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+          and NOT EXISTS (
           SELECT 1
             FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-        ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
-          and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+        )
     </select>
 
     <select id="findAllNotes" resultType="long">
         SELECT count(1) from T_MCARD_CONSUME t1
-        WHERE NOT EXISTS (
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              and NOT EXISTS (
               SELECT 1
                 FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
-            ) AND SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+            )
     </select>
 
     <select id="findCwNotes" resultType="long">
