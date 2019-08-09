@@ -435,4 +435,24 @@ public class FileUtil {
         }
         return srcFile;
     }
+
+    public static void copyJyInToOut(File targetFile, File unOutZipFileDir) {
+        BufferedReader reader = null;
+        BufferedWriter writer = null;
+        try {
+            File file = new File(unOutZipFileDir,targetFile.getName());
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(targetFile),"UTF-8"));
+            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file),"UTF-8"));
+            String line = null;
+            while ((line = reader.readLine()) != null){
+                writer.write(line + System.getProperty("line.separator"));
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            closeReader(reader);
+            closeWriter(writer);
+        }
+
+    }
 }

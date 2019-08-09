@@ -101,4 +101,13 @@ public class FileCheckError {
      */
     private BigDecimal QsAmount;
 
+    public FileCheckError(String settleDate, String zipFileName, String zipFileType, String cardType, Date checkDate, String resultCode, String resultMsg) {
+        this.settleDate = settleDate;
+        this.zipFileName = zipFileName;
+        this.zipFileType = zipFileType;
+        this.cardType = cardType;
+        this.checkDate = checkDate;
+        this.resultCode = resultCode;
+        this.resultMsg = resultMsg;
+    }
 }

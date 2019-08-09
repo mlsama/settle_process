@@ -37,52 +37,6 @@ public class CustomerServiceDataProcessImpl implements CustomerServiceDataProces
     @Resource
     private AreaService areaService;
 
-    /**
-     * 客服数据包的JY文件数据落库
-     * @param inZipFileName  input压缩文件名字
-     * @param unZipFile 解压后文件
-     * @param sqlldrDir
-     * @param dbUser
-     * @param dbPassword
-     * @param odbName
-     * @return 全部落库是否成功
-     */
-    @Override
-    public boolean batchInsert(String date,String inZipFileName, File unZipFile, File sqlldrDir,
-                                    String dbUser, String dbPassword, String odbName) {
-        //表名
-        String tableName;
-        //表字段
-        String fieldNames;
-        //控制文件
-        File contlFile;
-        if (inZipFileName.startsWith("CK")){
-            tableName = "T_CPU_CUSTOMER_SERVICE";
-            fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
-                    "PID,PSN,TIM,LCN,FCN,TF,FEE,BAL,TT,ATT,CRN,XRN,DMON," +
-                    "BDCT,MDCT,UDCT,EPID,ETIM,LPID,LTIM,AREA,ACT,SAREA,TAC)";
-            //控制文件
-            contlFile = new File(sqlldrDir,"cpuCustomerService.ctl");
-        }else { //KF
-            tableName = "T_MCARD_CUSTOMER_SERVICE";
-            fieldNames = "(SETTLE_DATE constant "+date+",ZIP_FILE_NAME constant "+inZipFileName+"," +
-                    "PSN, LCN, FCN, LPID, LTIM, PID, " +
-                    "TIM, TF, BAL, TT, RN, EPID, ETIM, AI, VC, TAC)";
-            //控制文件
-            contlFile = new File(sqlldrDir,"mCardCustomerService.ctl");
-        }
-       boolean f = SqlLdrUtil.insertBySqlLdr(dbUser, dbPassword, odbName, tableName, fieldNames, contlFile, unZipFile);
-        if (!f) {
-            log.error("落库失败，文件是{}", unZipFile.getAbsolutePath());
-            //修改
-            processResultService.update(
-                    new FileProcessResult(inZipFileName, unZipFile.getAbsolutePath(), new Date(),
-                            "6555", "落库失败"));
-        }
-        return f;
-    }
-
-
     @Override
     public boolean writerTODM(File dmmj, File dmcj, String settleDate, String zipFileName) {
         try {

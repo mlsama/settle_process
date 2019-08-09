@@ -30,7 +30,4 @@ public interface MCardConsumeNoBusMapper {
     long findCwNotes(@Param("date") String date,
                      @Param("zipFileName") String zipFileName);
 
-    long countCwNotes(@Param("date") String date,
-                      @Param("zipFileName") String zipFileName);
-
 }

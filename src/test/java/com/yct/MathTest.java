@@ -1,8 +1,11 @@
 package com.yct;
 
 import com.yct.settle.pojo.CustomerService;
+import com.yct.settle.utils.AmountUtil;
 import com.yct.settle.utils.MathUtil;
 import org.junit.Test;
+
+import java.math.BigDecimal;
 
 /**
  * DESC:
@@ -14,7 +17,13 @@ public class MathTest {
     @Test
     public void longTest(){
         CustomerService cpuCustomerDate = new CustomerService();
-        Long l = MathUtil.longAdd(cpuCustomerDate.getCpuCustomerInvestNotes(),cpuCustomerDate.getCpuCustomerInvestNotes());
+        Long l = MathUtil.longMinus(null,2L);
         System.out.println(l);
+    }
+
+    @Test
+    public void minusTest(){
+        BigDecimal minus = AmountUtil.minus(null, new BigDecimal("1"));
+        System.out.println(minus);
     }
 }

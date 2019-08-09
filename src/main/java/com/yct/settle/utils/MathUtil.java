@@ -127,4 +127,13 @@ public class MathUtil {
             }
             return result;
         }
+        public static long longMinus(Object v1,Object v2){
+            if (v1 == null){
+                v1 = 0L;
+            }
+            if (v2 == null){
+                v2 = 0L;
+            }
+            return (long)v1 - (long)v2;
+        }
 }

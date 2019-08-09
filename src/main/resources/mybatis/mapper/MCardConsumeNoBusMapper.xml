@@ -57,9 +57,4 @@
         )
     </select>
 
-    <select id="countCwNotes" resultType="long">
-        SELECT count(1) FROM T_MCARD_CONSUME_ERROR_NOBUS
-        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
-    </select>
-
 </mapper>

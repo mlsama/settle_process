@@ -27,14 +27,9 @@ public class FileUtilTest {
 
     @Test
     public void lineTest(){
-        File dir = new File("E:\\testData\\input\\20110309\\CX9004000120110308");
-        for (File file : dir.listFiles()){
-            if (file.getName().startsWith("JY")){
-                if (file.length() > 0){
-
-                }
-            }
-        }
+        File jy = new File("E:\\testData\\input\\20120610\\CZ2065000120120609\\JY2065000120120609.txt");
+        File dir = new File("E:\\testData\\output\\20120610\\CZ2065000120120609");
+        FileUtil.copyJyInToOut(jy,dir);
     }
 
     @Test

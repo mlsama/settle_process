@@ -56,4 +56,20 @@ public class AmountUtil {
         }
         return result;
     }
+
+    /**
+     * 减法
+     * @param v1
+     * @param v2
+     * @return
+     */
+    public static BigDecimal minus(BigDecimal v1, BigDecimal v2){
+        if (v1 == null){
+            v1 = new BigDecimal("0");
+        }
+        if (v2 == null){
+            v2 = new BigDecimal("0");
+        }
+        return v1.subtract(v2).setScale(2,BigDecimal.ROUND_HALF_UP);
+    }
 }

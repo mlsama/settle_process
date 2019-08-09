@@ -41,4 +41,10 @@
         )
     </insert>
 
+    <delete id="del">
+        DELETE FROM T_FILE_CHECK_ERROR
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+    </delete>
+
 </mapper>

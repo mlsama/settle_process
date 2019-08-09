@@ -42,5 +42,40 @@
                       and t1.ZIP_FILE_NAME=${zipFileName}
     </select>
 
+    <select id="exceptionRevise" resultType="com.yct.settle.pojo.ExceptionRevise">
+        select
+          count(1) as errorNotes,
+          sum(eAmount) as errorAmount,
+          sum(notes) as exceptionNotes,
+          sum(amount) as exceptionAmount
+        from
+          (
+            select
+              avg(TF) eAmount,
+              count(1) notes,
+              sum(TF) amount
+            from T_EXCEPTION_TRADE
+            where settle_date=#{date,jdbcType=VARCHAR}
+            group by PID,PSN
+          )
+    </select>
+
+    <select id="findPidPsnByWhere" resultType="com.yct.settle.pojo.ExceptionTrade">
+        SELECT PID,PSN FROM T_EXCEPTION_TRADE
+        WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR} and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+        group by PID,PSN
+    </select>
+
+    <delete id="delByPidPsn" statementType="STATEMENT">
+        DELETE FROM ${tableName,jdbcType=VARCHAR}
+        WHERE rowid=
+        (
+        SELECT min(rowid) FROM ${tableName,jdbcType=VARCHAR}
+        WHERE PID=${pid,jdbcType=VARCHAR}
+        AND PSN=${psn,jdbcType=VARCHAR}
+        AND SETTLE_DATE=${date,jdbcType=VARCHAR}
+        and ZIP_FILE_NAME=${zipFileName,jdbcType=VARCHAR}
+        )
+    </delete>
 
 </mapper>

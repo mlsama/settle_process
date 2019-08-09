@@ -20,22 +20,24 @@ public class AreaServiceImpl implements AreaService {
     private MerchantAreaMapper merchantAreaMapper;
     @Override
     public String getIssuesByCardNo(String cardNo) {
-        String areaCode = cardAreaMapper.getIssuesByCardNo(cardNo.substring(6, 15));
+       /* String areaCode = cardAreaMapper.getIssuesByCardNo(cardNo.substring(6, 15));
         if (areaCode == null){
             areaCode = "01";
         }
-        return areaCode;
+        return areaCode;*/
+       return "01";
     }
 
 
     @Override
     public String getUseAreaByMerchant(String zipFileName) {
-        String merchantNo = zipFileName.substring(2,6);
+        /*String merchantNo = zipFileName.substring(2,6);
         String areaNo = merchantAreaMapper.getUseAreaByMerchant(merchantNo);
         if (areaNo == null){
             merchantNo = zipFileName.substring(2,5);
             areaNo = merchantAreaMapper.getUseAreaByMerchant(merchantNo);
         }
-        return areaNo;
+        return areaNo;*/
+        return "01";
     }
 }

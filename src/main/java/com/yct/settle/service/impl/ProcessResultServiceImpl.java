@@ -1,14 +1,18 @@
 package com.yct.settle.service.impl;
 
 import com.yct.settle.mapper.ExceptionTradeMapper;
+import com.yct.settle.mapper.FileCheckErrorMapper;
 import com.yct.settle.mapper.FileProcessResultMapper;
 import com.yct.settle.mapper.ProcessResultMapper;
-import com.yct.settle.pojo.FileProcessResult;
-import com.yct.settle.pojo.ProcessResult;
+import com.yct.settle.pojo.*;
 import com.yct.settle.service.ProcessResultService;
+import com.yct.settle.utils.AmountUtil;
+import com.yct.settle.utils.MathUtil;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * DESC:
@@ -23,6 +27,8 @@ public class ProcessResultServiceImpl implements ProcessResultService {
     private ProcessResultMapper processResultMapper;
     @Resource
     private ExceptionTradeMapper exceptionTradeMapper;
+    @Resource
+    private FileCheckErrorMapper fileCheckErrorMapper;
 
     @Override
     public void delAndInsert(FileProcessResult result) {
@@ -38,6 +44,12 @@ public class ProcessResultServiceImpl implements ProcessResultService {
     }
 
     @Override
+    public void delAndInsert(FileCheckError result) {
+        fileCheckErrorMapper.del(result.getSettleDate(),result.getZipFileName());
+        fileCheckErrorMapper.insert(result);
+    }
+
+    @Override
     public void update(FileProcessResult result) {
         fileProcessResultMapper.update(result);
     }
@@ -47,4 +59,27 @@ public class ProcessResultServiceImpl implements ProcessResultService {
         exceptionTradeMapper.delByPram(date,zipFileName);
         exceptionTradeMapper.insert(date,zipFileName,tableName,errorTableName);
     }
+
+    @Override
+    public ExceptionRevise exceptionRevise(String date) {
+        ExceptionRevise exceptionRevise = exceptionTradeMapper.exceptionRevise(date);
+        if (exceptionRevise != null){
+            long notes = MathUtil.longMinus(exceptionRevise.getExceptionNotes(),exceptionRevise.getErrorNotes());
+            BigDecimal amount = AmountUtil.minus(exceptionRevise.getExceptionAmount(), exceptionRevise.getErrorAmount());
+            exceptionRevise.setNotes(notes);
+            exceptionRevise.setAmount(amount);
+        }
+        return exceptionRevise;
+    }
+
+    @Override
+    public List<ExceptionTrade> findPidPsnByWhere(String date, String zipFileName) {
+        return exceptionTradeMapper.findPidPsnByWhere(date,zipFileName);
+    }
+
+    @Override
+    public void delByPidPsn(String tableName, String pid, String psn, String date, String zipFileName) {
+        exceptionTradeMapper.delByPidPsn(tableName,pid,psn,date,zipFileName);
+    }
+
 }

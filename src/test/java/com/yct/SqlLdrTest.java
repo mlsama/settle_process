@@ -190,21 +190,21 @@ public class SqlLdrTest {
     @Test
     public void mCardConsumeNoBusTest(){
         String tableName = "T_MCARD_CONSUME_NOBUS";
-        String fieldNames = "(PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
+        String fieldNames = "(SETTLE_DATE constant '20110316',ZIP_FILE_NAME constant 'XF8015000120110316.ZIP',PSN, LCN, FCN, LPID, LTIM, PID, TIM, TF, BAL, TT, RN, EPID, ETIM, AI, VC, TAC, MEM)";
         //控制文件
         File contlFile = new File("E:\\sqlldrTest\\mCardConsumeNoBus.ctl");
-        File dataFile = new File("E:\\yct\\settleData\\input\\20110309\\XF200430120110308\\JY200430120110308.txt");
-        boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
+        File dataFile = new File("E:\\testData\\input\\20110316\\XF8015000120110316\\JY8015000120110316.txt");
+        boolean b = SqlLdrUtil.insertBySqlLdr("root", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
     }
     @Test
     public void mCardConsumeErrorNoBusTest(){
         String tableName = "T_MCARD_CONSUME_ERROR_NOBUS";
-        String fieldNames = "(PSN, PID, STATUS)";
+        String fieldNames = "(SETTLE_DATE constant '20110316',ZIP_FILE_NAME constant 'XF8015000120110316.ZIP',PSN, PID, STATUS)";
         //控制文件
         File contlFile = new File("E:\\sqlldrTest\\mCardConsumeErrorNoBus.ctl");
-        File dataFile = new File("E:\\yct\\settleData\\output\\20110309\\XF3901000120110309\\CW3901000120110309.TXT");
-        boolean b = SqlLdrUtil.insertBySqlLdr("SCOTT", "ml", "orcl",
+        File dataFile = new File("E:\\testData\\output\\20110316\\XF8015000120110316\\CW8015000120110316.TXT");
+        boolean b = SqlLdrUtil.insertBySqlLdr("root", "ml", "orcl",
                 tableName, fieldNames, contlFile, dataFile);
     }
 

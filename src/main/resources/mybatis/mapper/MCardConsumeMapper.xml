@@ -17,15 +17,14 @@
             TF, BAL, FEE,TT,
             RN, EPID, ETIM,TAC,rownum r
             FROM T_MCARD_CONSUME t1
-            WHERE SETTLE_DATE=#{date,jdbcType=VARCHAR}
-              and ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
-              AND <![CDATA[rownum <= #{endNum}]]>
-              and NOT EXISTS (
+            WHERE NOT EXISTS (
               SELECT 1
-                FROM T_MCARD_CONSUME_ERROR where t1.PID=PID AND t1.PSN=PSN
+                FROM T_MCARD_CONSUME_ERROR where PID=t1.PID AND PSN=t1.PSN
             )
+              AND SETTLE_DATE=#{date,jdbcType=VARCHAR}
+              AND ZIP_FILE_NAME=#{zipFileName,jdbcType=VARCHAR}
+              AND <![CDATA[rownum <= #{endNum}]]>
         ) WHERE <![CDATA[r > #{startNum}]]>
-
     </select>
 
     <select id="countAmountAndNum" resultType="com.yct.settle.pojo.CountData">
