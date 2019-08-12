@@ -67,14 +67,14 @@
     </select>
 
     <delete id="delByPidPsn" statementType="STATEMENT">
-        DELETE FROM ${tableName,jdbcType=VARCHAR}
+        DELETE FROM ${tableName}
         WHERE rowid=
         (
-        SELECT min(rowid) FROM ${tableName,jdbcType=VARCHAR}
-        WHERE PID=${pid,jdbcType=VARCHAR}
-        AND PSN=${psn,jdbcType=VARCHAR}
-        AND SETTLE_DATE=${date,jdbcType=VARCHAR}
-        and ZIP_FILE_NAME=${zipFileName,jdbcType=VARCHAR}
+        SELECT min(rowid) FROM ${tableName}
+        WHERE PID=${pid}
+        AND PSN=${psn}
+        AND SETTLE_DATE=${date}
+        and ZIP_FILE_NAME=${zipFileName}
         )
     </delete>
 

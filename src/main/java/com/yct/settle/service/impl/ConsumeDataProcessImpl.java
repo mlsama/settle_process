@@ -384,10 +384,10 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         List<ExceptionTrade> list = processResultService.findPidPsnByWhere(date, inZipFileName);
                         if (list.size() > 0) {
                             for (ExceptionTrade exceptionTrade : list) {
-                                processResultService.delByPidPsn("T_CPU_CONSUME_NOBUS", exceptionTrade.getPID(),
-                                        exceptionTrade.getPSN(), date, inZipFileName);
-                                processResultService.delByPidPsn("T_CPU_CONSUME_ERROR_NOBUS", exceptionTrade.getPID(),
-                                        exceptionTrade.getPSN(), date, inZipFileName);
+                                processResultService.delByPidPsn("T_CPU_CONSUME_NOBUS", "'"+exceptionTrade.getPID()+"'",
+                                        "'"+exceptionTrade.getPSN()+"'", "'"+date+"'", "'"+inZipFileName+"'");
+                                processResultService.delByPidPsn("T_CPU_CONSUME_ERROR_NOBUS","'"+exceptionTrade.getPID()+"'",
+                                        "'"+exceptionTrade.getPSN()+"'", "'"+date+"'", "'"+inZipFileName+"'");
                             }
                             //获取删除后的数据
                             cpuConsumeCountData = cpuConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
@@ -467,7 +467,7 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         }
                     }else {
                         errorFlag = true;
-                        resultCode = "6555";
+                        resultCode = "0030";
                         resultMsg = "m1卡非公交消费文件错误文件的笔数不等于消费文件错误笔数";
                         log.error("{}校验失败，错误文件的笔数{},消费文件错误笔数:{}。",inZipFileName,cwNotes,mCardCwNotes);
                     }
@@ -482,10 +482,11 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         List<ExceptionTrade> list = processResultService.findPidPsnByWhere(date, inZipFileName);
                         if (list.size() > 0){
                             for (ExceptionTrade exceptionTrade : list){
-                                processResultService.delByPidPsn("T_MCARD_CONSUME_NOBUS",exceptionTrade.getPID(),
-                                                            exceptionTrade.getPSN(),date,inZipFileName);
-                                processResultService.delByPidPsn("T_MCARD_CONSUME_ERROR_NOBUS",exceptionTrade.getPID(),
-                                                            exceptionTrade.getPSN(),date,inZipFileName);
+                                processResultService.delByPidPsn("T_MCARD_CONSUME_NOBUS", "'"+exceptionTrade.getPID()+"'",
+                                        "'"+exceptionTrade.getPSN()+"'", "'"+date+"'", "'"+inZipFileName+"'");
+                                processResultService.delByPidPsn("T_MCARD_CONSUME_ERROR_NOBUS", "'"+exceptionTrade.getPID()+"'",
+                                        "'"+exceptionTrade.getPSN()+"'", "'"+date+"'", "'"+inZipFileName+"'");
+
                             }
                             //获取删除后的数据
                             mCardConsumeCountData = mCardConsumeNoBusMapper.countAmountAndNum(date, inZipFileName);
