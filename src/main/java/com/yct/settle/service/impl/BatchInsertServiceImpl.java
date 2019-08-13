@@ -403,7 +403,7 @@ public class BatchInsertServiceImpl implements BatchInsertService {
                         File ocfile = new File(sqlldrDir, "mCardConsumeError.ctl");
                         //pid=cw的psn,psn=cw的pid,把它转换回来
                         if (inZipFileName.startsWith("XF0000") || inZipFileName.startsWith("XF0002") ||
-                                inZipFileName.startsWith("XF90100001")) {
+                                inZipFileName.startsWith("XF90100001") || inZipFileName.startsWith("XF90130001")) {
                             File cw = new File(unOutZipFileDir, "cw.txt");
                             convertCw(outputUnzipFile, cw);
                             outputUnzipFile = cw;

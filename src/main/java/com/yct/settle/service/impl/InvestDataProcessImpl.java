@@ -208,6 +208,8 @@ public class InvestDataProcessImpl implements InvestDataProcess {
                         //修改
                         processResultService.update(
                                 new FileProcessResult(outZipFile.getName(), null, new Date(),code, msg));
+                        FileUtil.deleteFile(unOutZipFileDir);
+                        FileUtil.deleteFile(unInZipFileDir);
                         return true;
                     }else {
                         code = "6555";

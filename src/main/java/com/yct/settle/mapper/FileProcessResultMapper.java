@@ -27,5 +27,6 @@ public interface FileProcessResultMapper {
 
     CustomerService countMCardCustomerDate(String date);
 
-    void del(@Param("date") String date, @Param("zipFileName")String zipFileName);
+    void del(@Param("date") String date,
+             @Param("zipFileName")String zipFileName);
 }

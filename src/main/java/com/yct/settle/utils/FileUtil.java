@@ -154,7 +154,7 @@ public class FileUtil {
             log.info("解压{}成功,耗时{}S",zipFile,(endTime-startTime)/1000);
             return true;
         }catch (Exception e){
-            log.error("解压{}失败成功,cause by{}",zipFile,e);
+            log.error("解压{}失败,cause by{}",zipFile,e);
             return false;
         }finally {
             if (zip != null){

@@ -45,7 +45,7 @@ public class ProcessResultServiceImpl implements ProcessResultService {
 
     @Override
     public void delAndInsert(FileCheckError result) {
-        fileCheckErrorMapper.del(result.getSettleDate(),result.getZipFileName());
+        //fileCheckErrorMapper.del(result.getSettleDate(),result.getZipFileName());
         fileCheckErrorMapper.insert(result);
     }
 
