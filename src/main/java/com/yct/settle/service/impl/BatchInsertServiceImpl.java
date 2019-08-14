@@ -312,7 +312,7 @@ public class BatchInsertServiceImpl implements BatchInsertService {
      *  把CX或者XF压缩文件中的JY文件和对应的output文件夹的相关的文件（CW,XZ,QS）落库
      * @param unOutZipFileDir input对应的output的文件夹
      * @param inZipFileName  input压缩文件名字
-     * @param unZipFile 解压后文件
+     * @param unZipFile input的JY文件
      * @param dbUser
      * @param dbPassword
      * @param odbName

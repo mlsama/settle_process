@@ -87,6 +87,9 @@ public class ConsumeDataProcessImpl implements ConsumeDataProcess {
                         return false;
                     }
                     inZipFileName = inZipFile.getName();
+                    if(inZipFileName.indexOf(".") == -1){
+                        inZipFileName += ".ZIP";
+                    }
                     //处理inputDate下的一个压缩文件
                     if (inZipFileName.startsWith("CX") || inZipFileName.startsWith("XF") ||
                             inZipFileName.startsWith("CK") || inZipFileName.startsWith("KF")) {
