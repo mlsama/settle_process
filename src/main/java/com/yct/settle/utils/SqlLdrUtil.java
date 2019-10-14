@@ -15,12 +15,23 @@ import java.io.IOException;
 public class SqlLdrUtil {
     private static final Logger log = LoggerFactory.getLogger(SqlLdrUtil.class);
 
-    public static boolean insertBySqlLdr(String user,String password,String dbname,String table,String fieldName,
-                                         File contrFile,File dataFile){
+    /**
+     * 使用sqlldr批量导入数据
+     * @param user 用户名
+     * @param password 密码
+     * @param dbname 数据库名称
+     * @param table 表名
+     * @param fieldName 表字段列表
+     * @param contrFile 控制文件
+     * @param dataFile 数据包文件
+     * @return 是否导入成功
+     */
+    public static boolean insertBySqlLdr(String user,String password,String dbname,String table,
+                                         String fieldName, File contrFile,File dataFile){
         log.info("开始对文件{}进行落库",dataFile.getAbsolutePath());
         boolean flag = false;
         //生成控制文件
-        stlFileWriter(contrFile,dataFile,table,fieldName);
+        ctlFileWriter(contrFile,dataFile,table,fieldName);
         String contrFilePath = contrFile.getAbsolutePath();
         String logPath = contrFilePath.substring(0,contrFilePath.indexOf("."))+".log";
         String command = "sqlldr " + user + "/" + password + "@" + dbname + " control=" + contrFile.getAbsolutePath() + " log="+logPath+" direct=true rows=100160 readsize=20971520 bindsize=20971520";
@@ -34,8 +45,8 @@ public class SqlLdrUtil {
             //Process process = Runtime.getRuntime().exec(command);
             //获取执行结果。0：成功
             int exitValue = process.waitFor();
-            long end = System.currentTimeMillis();
             if (exitValue == 0){
+                long end = System.currentTimeMillis();
                 flag = true;
                 log.info("导入文件{}成功，耗时{}s",dataFile.getAbsolutePath(),(end-start)/1000);
             }else {
@@ -56,7 +67,7 @@ public class SqlLdrUtil {
      * @param tableName 表名
      * @param fieldName 要写入表的字段:(1,2,...)
      */
-    private static void stlFileWriter(File contrFile, File dataFile, String tableName, String fieldName) {
+    private static void ctlFileWriter(File contrFile, File dataFile, String tableName, String fieldName) {
         FileWriter fw = null;
         try {
             String separator = System.getProperty("line.separator");
