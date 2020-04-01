@@ -18,7 +18,7 @@ public class FileUtilTest {
     }
     @Test
     public void zipTest(){
-       FileUtil.zipV2("E:\\sqlldrTest\\CZ2002000120120609","E:\\sqlldrTest\\CZ2002000120120609.zip");
+       FileUtil.zipV1("E:\\testData\\extractFile","E:\\testData\\extractFile.zip");
     }
     @Test
     public void unzipTest(){
@@ -36,6 +36,11 @@ public class FileUtilTest {
     public void zipUnzipTest(){
         File file = FileUtil.zipUnZipFile(new File("E:\\sqlldrTest\\CZ2002000120120609"));
         System.out.println(file.getAbsolutePath());
+    }
+    @Test
+    public void getRelativePathTest(){
+        String relativePath = FileUtil.getRelativePath("E:\\testData\\extractFile", new File("E:\\testData\\extractFile\\config\\merInfo.txt"));
+        System.out.println(relativePath);
     }
 
 

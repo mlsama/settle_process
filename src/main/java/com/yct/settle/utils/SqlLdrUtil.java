@@ -35,7 +35,8 @@ public class SqlLdrUtil {
         String contrFilePath = contrFile.getAbsolutePath();
         String logPath = contrFilePath.substring(0,contrFilePath.indexOf("."))+".log";
         String command = "sqlldr " + user + "/" + password + "@" + dbname + " control=" + contrFile.getAbsolutePath() + " log="+logPath+" direct=true rows=100160 readsize=20971520 bindsize=20971520";
-        // 命令。//Linux环境下注释掉不需要CMD 直接执行DOS就可以？？？
+        // 命令。//Linux环境下注释掉不需要CMD 直接执行DOS就可以or如下?
+        //String[] cmd = { "/bin/sh", "-c", command };
         String[] cmd = new String[] { "cmd.exe", "/C", command};
         try{
             long start = System.currentTimeMillis();
@@ -43,6 +44,7 @@ public class SqlLdrUtil {
             Process process = Runtime.getRuntime().exec(cmd);
             // linux执行cmd命令
             //Process process = Runtime.getRuntime().exec(command);
+            //Process process = Runtime.getRuntime().exec(cmd);
             //获取执行结果。0：成功
             int exitValue = process.waitFor();
             if (exitValue == 0){

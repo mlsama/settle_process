@@ -72,27 +72,22 @@ public class FileUtil {
     /**
      * 取的给定源目录下的所有文件及空的子目录
      * 递归实现
-     * @param file
+     * @param srcFile
      * @return
      */
-    public static List<File> getFiles(File file) {
-        List<File> fileList = new ArrayList<>();
+    public static List<File> getFiles(File srcFile,List<File> fileList) {
         //文件夹
-        if (file.isDirectory()){
-            File[] tmp = file.listFiles();
-            for (int i = 0 ; i < tmp.length ; i++) {
-                if (tmp[i].isFile()) {
-                    fileList.add(tmp[i]);
-                }
-                if (tmp[i].isDirectory()) {
+        if (srcFile.isDirectory()){
+            for (File file :  srcFile.listFiles()) {
+                if (file.isFile()) {
+                    fileList.add(file);
+                }else {
                     //若不是空目录，则递归添加其下的目录和文件
-                    if (tmp[i].listFiles().length != 0){
-                        getFiles(tmp[i]);
-                    }
+                    getFiles(file,fileList);
                 }
             }
         }else {//文件
-            fileList.add(file);
+            fileList.add(srcFile);
         }
         return fileList;
     }
@@ -189,38 +184,52 @@ public class FileUtil {
     public static boolean zipV1(String srcPath, String zipFilePath) {
         Long startTime = System.currentTimeMillis();
         File srcFile = new File(srcPath);
-        List<File> fileList = getFiles(srcFile);//所有要压缩的文件
-        byte[] buffer  = new byte[1024];//缓冲器
+        List<File> fileList = new ArrayList<>();
+        //获取压缩源路径下所有要压缩的文件
+        getFiles(srcFile,fileList);
+        //缓冲区
+        byte[] buffer  = new byte[1024];
         ZipEntry zipEntry = null;
-        int readLength = 0;//每次读出来的长度
+        //每次读出来的长度
+        int readLength = 0;
+        ZipOutputStream zipOutputStream = null;
         try {
-            ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFilePath));
+            //输出流指向压缩文件
+            zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFilePath));
             for (File file : fileList) {
-                if (file.isFile()){//若是文件，则压缩这个文件
-                    zipEntry = new ZipEntry(getRelativePath(srcPath, file));
-                    zipEntry.setSize(file.length());
-                    zipEntry.setTime(file.lastModified());
+                //获取该文件在源目录的相对路径
+                String relativePath = getRelativePath(srcPath, file);
+                //若是文件，则压缩这个文件
+                if (file.isFile()){
+                    //设置该文件在压缩文件中的路径,相对于压缩文件路径.一个zipEntry对应一个文件
+                    zipEntry = new ZipEntry(relativePath);
                     zipOutputStream.putNextEntry(zipEntry);
+                    //读取该文件内容
                     InputStream inputStream = new BufferedInputStream(new FileInputStream(file));
                     while ((readLength = inputStream.read(buffer,0,1024)) != -1) {
+                        //写出到压缩文件中对应的文件
                         zipOutputStream.write(buffer, 0, readLength);
                     }
                     inputStream.close();
-                }else {//若是目录（即空目录）则将这个目录写入zip条目
-                    zipEntry = new ZipEntry(getRelativePath(srcPath, file)+"/");
+                }else {//若是目录,则将这个目录写入zip条目
+                    zipEntry = new ZipEntry(relativePath + "/");
                     zipOutputStream.putNextEntry(zipEntry);
                 }
             }
-            zipOutputStream.close();
+            Long endTime = System.currentTimeMillis();
+            log.info("压缩{}下的文件成功,耗时{}S",srcPath,(endTime-startTime)/1000);
+            return true;
         } catch (Exception e) {
             log.error("压缩{}下的文件异常,cause by{}",srcPath,e);
             return false;
+        }finally {
+            try {
+                zipOutputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-        //删除源文件
-        deleteFile(srcFile);
-        Long endTime = System.currentTimeMillis();
-        log.info("压缩{}下的文件成功,耗时{}S",srcPath,(endTime-startTime)/1000);
-        return true;
+
     }
 
     /**
@@ -230,7 +239,7 @@ public class FileUtil {
      * @param file
      * @return 相对路径
      */
-    private static String getRelativePath(String dirPath, File file) {
+    public static String getRelativePath(String dirPath, File file) {
         File dir = new File(dirPath);
         String relativePath = file.getName();
         while (true) {
@@ -257,7 +266,8 @@ public class FileUtil {
         Long startTime = System.currentTimeMillis();
         File srcFile = new File(srcPath);
         File target = new File(zipFilePath);
-        List<File> files = getFiles(srcFile);//所有要压缩的文件
+        List<File> files = new ArrayList<>();
+        getFiles(srcFile,files);//所有要压缩的文件
         if (files != null && files.size() > 0) {
             ZipArchiveOutputStream zaos = null;
             try {
